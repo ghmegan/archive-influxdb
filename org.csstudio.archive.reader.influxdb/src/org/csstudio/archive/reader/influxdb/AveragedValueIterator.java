@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -102,7 +102,7 @@ public class AveragedValueIterator implements ValueIterator
         AlarmSeverity severity = VTypeHelper.getSeverity(base_value);
         String status = VTypeHelper.getMessage(base_value);
         while (base_value != null &&
-               VTypeHelper.getTimestamp(base_value).compareTo(average_window_end) < 0)
+                VTypeHelper.getTimestamp(base_value).compareTo(average_window_end) < 0)
         {
             final Number num = getNumericValue(base_value);
             if (num != null)
@@ -158,7 +158,7 @@ public class AveragedValueIterator implements ValueIterator
      *          severe than the <code>current</code> severity.
      */
     private boolean isHigherSeverity(final AlarmSeverity current,
-                                     final AlarmSeverity new_severity)
+            final AlarmSeverity new_severity)
     {
         return new_severity.ordinal() > current.ordinal();
     }
@@ -181,7 +181,7 @@ public class AveragedValueIterator implements ValueIterator
         {
             final VNumberArray numbers = (VNumberArray) value;
             if (numbers.getAlarmSeverity() != AlarmSeverity.UNDEFINED  &&
-                numbers.getData().size() > 0)
+                    numbers.getData().size() > 0)
                 return numbers.getData().getDouble(0);
         }
         // String or Enum, or no Value at all

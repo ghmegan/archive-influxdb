@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import java.sql.Connection;
 import java.util.ArrayList;
@@ -53,8 +53,8 @@ public class ConnectionCache
                 return false;
             final ID other = (ID) obj;
             return url.equals(other.url)   &&
-                   user.equals(other.user) &&
-                   Objects.equals(password, other.password);
+                    user.equals(other.user) &&
+                    Objects.equals(password, other.password);
         }
 
         @Override

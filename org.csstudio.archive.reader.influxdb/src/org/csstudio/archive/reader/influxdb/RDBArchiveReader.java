@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -65,7 +65,7 @@ public class RDBArchiveReader implements ArchiveReader
 
     /** List of statements to cancel in cancel() */
     private ArrayList<Statement> cancellable_statements =
-        new ArrayList<Statement>();
+            new ArrayList<Statement>();
 
     private boolean concurrency = false;
 
@@ -80,7 +80,7 @@ public class RDBArchiveReader implements ArchiveReader
     public RDBArchiveReader(final String url, final String user,
             final String password, final String schema,
             final String stored_procedure)
-        throws Exception
+                    throws Exception
     {
         this(url, user, password, schema, stored_procedure, RDBArchivePreferences.useArrayBlob());
     }
@@ -98,7 +98,7 @@ public class RDBArchiveReader implements ArchiveReader
             final String password, final String schema,
             final String stored_procedure,
             final boolean use_array_blob)
-        throws Exception
+                    throws Exception
     {
         this.url = url;
         this.user = user;
@@ -157,8 +157,8 @@ public class RDBArchiveReader implements ArchiveReader
         final HashMap<Integer, String> stati = new HashMap<Integer, String>();
         try
         (
-            final Statement statement = rdb.getConnection().createStatement();
-        )
+                final Statement statement = rdb.getConnection().createStatement();
+                )
         {
             if (timeout > 0)
                 statement.setQueryTimeout(timeout);
@@ -178,8 +178,8 @@ public class RDBArchiveReader implements ArchiveReader
         final HashMap<Integer, AlarmSeverity> severities = new HashMap<Integer, AlarmSeverity>();
         try
         (
-            final Statement statement = rdb.getConnection().createStatement();
-        )
+                final Statement statement = rdb.getConnection().createStatement();
+                )
         {
             if (timeout > 0)
                 statement.setQueryTimeout(timeout);
@@ -206,7 +206,7 @@ public class RDBArchiveReader implements ArchiveReader
                 if (severity == null)
                 {
                     Activator.getLogger().log(Level.FINE,
-                        "Undefined severity level {0}", text);
+                            "Undefined severity level {0}", text);
                     severities.put(id, AlarmSeverity.UNDEFINED);
                 }
                 else
@@ -278,8 +278,8 @@ public class RDBArchiveReader implements ArchiveReader
     public String getDescription()
     {
         return "RDB Archive V" + getVersion() + " (" + rdb.getDialect() + ")\n" +
-               "User: " + user + "\n" +
-               "Password: " + password + " characters";
+                "User: " + user + "\n" +
+                "Password: " + password + " characters";
     }
 
     /** {@inheritDoc} */
@@ -294,9 +294,9 @@ public class RDBArchiveReader implements ArchiveReader
     public ArchiveInfo[] getArchiveInfos()
     {
         return new ArchiveInfo[]
-        {
-            new ArchiveInfo("rdb", rdb.getDialect().toString(), 1)
-        };
+                {
+                        new ArchiveInfo("rdb", rdb.getDialect().toString(), 1)
+                };
     }
 
     /** {@inheritDoc} */
@@ -394,9 +394,9 @@ public class RDBArchiveReader implements ArchiveReader
         final int counted;
         try
         (
-            final PreparedStatement count_samples = rdb.getConnection().prepareStatement(
-                    sql.sample_count_by_id_start_end);
-        )
+                final PreparedStatement count_samples = rdb.getConnection().prepareStatement(
+                        sql.sample_count_by_id_start_end);
+                )
         {
             count_samples.setInt(1, channel_id);
             count_samples.setTimestamp(2, TimestampHelper.toSQLTimestamp(start));
@@ -428,9 +428,9 @@ public class RDBArchiveReader implements ArchiveReader
     {
         try
         (
-            final PreparedStatement statement =
+                final PreparedStatement statement =
                 rdb.getConnection().prepareStatement(sql.channel_sel_by_name);
-        )
+                )
         {
             if (timeout > 0)
                 statement.setQueryTimeout(timeout);
@@ -508,7 +508,7 @@ public class RDBArchiveReader implements ArchiveReader
                 catch (Exception ex)
                 {
                     Logger.getLogger(Activator.ID).log(Level.WARNING,
-                        "Attempt to cancel statement", ex); //$NON-NLS-1$
+                            "Attempt to cancel statement", ex); //$NON-NLS-1$
                 }
             }
         }
@@ -531,7 +531,7 @@ public class RDBArchiveReader implements ArchiveReader
         catch (Exception ex)
         {
             Activator.getLogger().log(Level.WARNING,
-                "Attempt to cleanup connection failed with Exception", ex); //$NON-NLS-1$
+                    "Attempt to cleanup connection failed with Exception", ex); //$NON-NLS-1$
         }
         ConnectionCache.release(rdb);
     }

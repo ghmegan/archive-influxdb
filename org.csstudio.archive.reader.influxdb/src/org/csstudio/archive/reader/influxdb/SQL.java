@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import org.csstudio.platform.utility.rdb.RDBUtil;
 import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
@@ -59,12 +59,12 @@ public class SQL
 
         // Meta data tables
         numeric_meta_sel_by_channel = "SELECT low_disp_rng, high_disp_rng," +
-        " low_warn_lmt, high_warn_lmt," +
-        " low_alarm_lmt, high_alarm_lmt," +
-        " prec, unit FROM " + prefix + "num_metadata WHERE channel_id=?";
+                " low_warn_lmt, high_warn_lmt," +
+                " low_alarm_lmt, high_alarm_lmt," +
+                " prec, unit FROM " + prefix + "num_metadata WHERE channel_id=?";
 
         enum_sel_num_val_by_channel = "SELECT enum_nbr, enum_val FROM "
-            + prefix + "enum_metadata WHERE channel_id=? ORDER BY enum_nbr";
+                + prefix + "enum_metadata WHERE channel_id=? ORDER BY enum_nbr";
 
         // 'channel' table
         if (dialect == RDBUtil.Dialect.Oracle)
@@ -90,46 +90,46 @@ public class SQL
             // also includes a function for determining
             // the initial sample time
             sample_sel_initial_time = Preferences.getStarttimeFunction().isEmpty()
-              ? "SELECT smpl_time FROM (SELECT smpl_time FROM " +
-                prefix + "sample WHERE channel_id=? AND smpl_time<=?" +
-                " ORDER BY smpl_time DESC) WHERE ROWNUM=1"
-              : Preferences.getStarttimeFunction();
+                    ? "SELECT smpl_time FROM (SELECT smpl_time FROM " +
+                    prefix + "sample WHERE channel_id=? AND smpl_time<=?" +
+                    " ORDER BY smpl_time DESC) WHERE ROWNUM=1"
+                    : Preferences.getStarttimeFunction();
             sample_sel_by_id_start_end =
-                "SELECT smpl_time, severity_id, status_id, num_val, float_val, str_val FROM " + prefix + "sample"+
-                "   WHERE channel_id=?" +
-                "     AND smpl_time BETWEEN ? AND ?" +
-                "   ORDER BY smpl_time";
+                    "SELECT smpl_time, severity_id, status_id, num_val, float_val, str_val FROM " + prefix + "sample"+
+                            "   WHERE channel_id=?" +
+                            "     AND smpl_time BETWEEN ? AND ?" +
+                            "   ORDER BY smpl_time";
             sample_sel_by_id_start_end_with_blob =
                     "SELECT smpl_time, severity_id, status_id, num_val, float_val, str_val, datatype, array_val" +
-                    "   FROM " + prefix + "sample" +
-                    "   WHERE channel_id=?" +
-                    "     AND smpl_time>=? AND smpl_time<=?" +
-                    "   ORDER BY smpl_time";
+                            "   FROM " + prefix + "sample" +
+                            "   WHERE channel_id=?" +
+                            "     AND smpl_time>=? AND smpl_time<=?" +
+                            "   ORDER BY smpl_time";
             sample_sel_array_vals = "SELECT float_val FROM " + prefix + "array_val" +
-                " WHERE channel_id=? AND smpl_time=? ORDER BY seq_nbr";
+                    " WHERE channel_id=? AND smpl_time=? ORDER BY seq_nbr";
         }
         else
         {    // MySQL, Postgres
             sample_sel_initial_time =
-                "SELECT smpl_time, nanosecs" +
-                "   FROM " + prefix + "sample WHERE channel_id=? AND smpl_time<=?" +
-                "   ORDER BY smpl_time DESC, nanosecs DESC LIMIT 1";
+                    "SELECT smpl_time, nanosecs" +
+                            "   FROM " + prefix + "sample WHERE channel_id=? AND smpl_time<=?" +
+                            "   ORDER BY smpl_time DESC, nanosecs DESC LIMIT 1";
             sample_sel_by_id_start_end =
-                "SELECT smpl_time, severity_id, status_id, num_val, float_val, str_val, nanosecs FROM " + prefix + "sample" +
-                "   WHERE channel_id=?" +
-                "     AND smpl_time>=? AND smpl_time<=?" +
-                "   ORDER BY smpl_time, nanosecs";
+                    "SELECT smpl_time, severity_id, status_id, num_val, float_val, str_val, nanosecs FROM " + prefix + "sample" +
+                            "   WHERE channel_id=?" +
+                            "     AND smpl_time>=? AND smpl_time<=?" +
+                            "   ORDER BY smpl_time, nanosecs";
             sample_sel_by_id_start_end_with_blob =
-                "SELECT smpl_time, severity_id, status_id, num_val, float_val, str_val, nanosecs, datatype, array_val" +
-                "   FROM " + prefix + "sample" +
-                "   WHERE channel_id=?" +
-                "     AND smpl_time>=? AND smpl_time<=?" +
-                "   ORDER BY smpl_time, nanosecs";
+                    "SELECT smpl_time, severity_id, status_id, num_val, float_val, str_val, nanosecs, datatype, array_val" +
+                            "   FROM " + prefix + "sample" +
+                            "   WHERE channel_id=?" +
+                            "     AND smpl_time>=? AND smpl_time<=?" +
+                            "   ORDER BY smpl_time, nanosecs";
             sample_sel_array_vals = "SELECT float_val FROM " + prefix + "array_val" +
-                " WHERE channel_id=? AND smpl_time=? AND nanosecs=? ORDER BY seq_nbr";
+                    " WHERE channel_id=? AND smpl_time=? AND nanosecs=? ORDER BY seq_nbr";
         }
         // Rough count, ignoring nanosecs for the non-Oracle dialects
         sample_count_by_id_start_end = "SELECT COUNT(*) FROM " + prefix + "sample" +
-          "   WHERE channel_id=? AND smpl_time BETWEEN ? AND ?";
+                "   WHERE channel_id=? AND smpl_time BETWEEN ? AND ?";
     }
 }

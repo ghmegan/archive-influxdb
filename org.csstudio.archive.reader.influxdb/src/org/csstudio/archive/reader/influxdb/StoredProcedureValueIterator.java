@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import java.sql.CallableStatement;
 import java.sql.Date;
@@ -105,11 +105,11 @@ public class StoredProcedureValueIterator extends AbstractRDBValueIterator
 
             if (dialect == RDBUtil.Dialect.MySQL)
             {     //MySQL
-                 statement.setInt(1, channel_id);
-                 statement.setTimestamp(2, TimestampHelper.toSQLTimestamp(start));
-                 statement.setTimestamp(3, TimestampHelper.toSQLTimestamp(end));
-                 statement.setInt(4, count);
-                 result = statement.executeQuery();
+                statement.setInt(1, channel_id);
+                statement.setTimestamp(2, TimestampHelper.toSQLTimestamp(start));
+                statement.setTimestamp(3, TimestampHelper.toSQLTimestamp(end));
+                statement.setInt(4, count);
+                result = statement.executeQuery();
             }
             else if(dialect == RDBUtil.Dialect.PostgreSQL)
             {    //PostgreSQL
@@ -275,11 +275,11 @@ public class StoredProcedureValueIterator extends AbstractRDBValueIterator
         values = null;
         if (reader.getDialect() == Dialect.PostgreSQL) {
             // Restore default auto-commit on result set close
-             try {
-                 reader.getConnection().setAutoCommit(true);
-             } catch (Exception e) {
-                 // Ignore
-             }
+            try {
+                reader.getConnection().setAutoCommit(true);
+            } catch (Exception e) {
+                // Ignore
+            }
         }
 
     }

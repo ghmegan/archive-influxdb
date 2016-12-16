@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -85,7 +85,7 @@ public class RawSampleIterator extends AbstractRDBValueIterator
 
         // Get time of initial sample
         final PreparedStatement statement =
-            reader.getConnection().prepareStatement(reader.getSQL().sample_sel_initial_time);
+                reader.getConnection().prepareStatement(reader.getSQL().sample_sel_initial_time);
         reader.addForCancellation(statement);
         try
         {
@@ -229,11 +229,11 @@ public class RawSampleIterator extends AbstractRDBValueIterator
         }
         if (reader.getDialect() == Dialect.PostgreSQL) {
             // Restore default auto-commit on result set close
-             try {
-                 reader.getConnection().setAutoCommit(true);
-             } catch (Exception e) {
-                 // Ignore
-             }
+            try {
+                reader.getConnection().setAutoCommit(true);
+            } catch (Exception e) {
+                // Ignore
+            }
         }
     }
 

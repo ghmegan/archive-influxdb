@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import java.io.IOException;
 
@@ -33,7 +33,7 @@ import org.eclipse.ui.preferences.ScopedPreferenceStore;
  *  @author Kay Kasemir
  */
 public class PreferencePage extends FieldEditorPreferencePage
-        implements IWorkbenchPreferencePage
+implements IWorkbenchPreferencePage
 {
     // Most of the preferences are in the o.c.archive.rdb plugin,
     // so that is used as the overall preference store for this
@@ -61,7 +61,7 @@ public class PreferencePage extends FieldEditorPreferencePage
 
         // Separate store for archive.reader.rdb
         reader_prefs = new ScopedPreferenceStore(scope,
-                org.csstudio.archive.reader.rdb.Activator.ID);
+                org.csstudio.archive.reader.influxdb.Activator.ID);
     }
 
     /** {@inheritDoc} */

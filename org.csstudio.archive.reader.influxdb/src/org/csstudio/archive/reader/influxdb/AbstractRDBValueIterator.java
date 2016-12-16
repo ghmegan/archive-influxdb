@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -94,7 +94,7 @@ abstract public class AbstractRDBValueIterator  implements ValueIterator
     {
         // Try numeric meta data
         final PreparedStatement statement =
-            reader.getConnection().prepareStatement(reader.getSQL().numeric_meta_sel_by_channel);
+                reader.getConnection().prepareStatement(reader.getSQL().numeric_meta_sel_by_channel);
         try
         {
             statement.setInt(1, channel_id);
@@ -132,7 +132,7 @@ abstract public class AbstractRDBValueIterator  implements ValueIterator
         // Try enumerated meta data
         List<String> labels = null;
         final PreparedStatement statement = reader.getConnection().prepareStatement(
-                                reader.getSQL().enum_sel_num_val_by_channel);
+                reader.getSQL().enum_sel_num_val_by_channel);
         try
         {
             statement.setInt(1, channel_id);
@@ -196,12 +196,12 @@ abstract public class AbstractRDBValueIterator  implements ValueIterator
             if (handle_array)
             {   // Get array elements - if any.
                 final double data[] = reader.useArrayBlob()
-                    ? readBlobArrayElements(dbl0, result)
-                    : readArrayElements(time, dbl0, severity);
-                if (data.length == 1)
-                    return new ArchiveVNumber(time, severity, status, display, data[0]);
-                else
-                    return new ArchiveVNumberArray(time, severity, status, display, data);
+                        ? readBlobArrayElements(dbl0, result)
+                                : readArrayElements(time, dbl0, severity);
+                        if (data.length == 1)
+                            return new ArchiveVNumber(time, severity, status, display, data[0]);
+                        else
+                            return new ArchiveVNumberArray(time, severity, status, display, data);
             }
             else
                 return new ArchiveVNumber(time, severity, status, display, dbl0);
@@ -234,8 +234,8 @@ abstract public class AbstractRDBValueIterator  implements ValueIterator
         // we use the special severity that marks a sample
         // without a value.
         if (status.equalsIgnoreCase("Archive_Off") ||
-            status.equalsIgnoreCase("Disconnected") ||
-            status.equalsIgnoreCase("Write_Error"))
+                status.equalsIgnoreCase("Disconnected") ||
+                status.equalsIgnoreCase("Write_Error"))
             return AlarmSeverity.UNDEFINED;
         return severity;
     }

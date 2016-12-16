@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.reader.rdb;
+package org.csstudio.archive.reader.influxdb;
 
 import org.csstudio.archive.rdb.RDBArchivePreferences;
 import org.csstudio.archive.reader.ArchiveReader;
