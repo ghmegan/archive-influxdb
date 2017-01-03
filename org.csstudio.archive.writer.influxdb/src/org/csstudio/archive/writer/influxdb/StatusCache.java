@@ -5,14 +5,14 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.util.HashMap;
 
 import org.csstudio.archive.vtype.ArchiveVType;
-import org.csstudio.platform.utility.rdb.RDBUtil;
-import org.csstudio.platform.utility.rdb.StringID;
-import org.csstudio.platform.utility.rdb.StringIDHelper;
+import org.csstudio.platform.utility.influxdb.RDBUtil;
+import org.csstudio.platform.utility.influxdb.StringID;
+import org.csstudio.platform.utility.influxdb.StringIDHelper;
 
 /** Caching RDB interface to status info.
  *  @author Kay Kasemir
@@ -27,9 +27,9 @@ public class StatusCache
         new HashMap<String, Status>();
 
     /** Constructor */
-    public StatusCache(final RDBUtil rdb, final SQL sql)
+    public StatusCache(final RDBUtil influxdb, final SQL sql)
     {
-        helper = new StringIDHelper(rdb,
+        helper = new StringIDHelper(influxdb,
             sql.status_table, sql.status_id_column, sql.status_name_column);
     }
 

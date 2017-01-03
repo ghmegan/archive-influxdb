@@ -5,14 +5,14 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.logging.Level;
 
-import org.csstudio.platform.utility.rdb.RDBUtil;
+import org.csstudio.platform.utility.influxdb.RDBUtil;
 
 /** Enumeration Strings for a channel.
  *  <p>
@@ -30,16 +30,16 @@ public class EnumMetaDataHelper
     }
 
     /** Delete meta data for channel
-     *  @param rdb RDBUtil
+     *  @param influxdb RDBUtil
      *  @param sql SQL statements
      *  @param channel Channel
      *  @throws Exception on error
      */
-    public static void delete(final RDBUtil rdb, final SQL sql,
+    public static void delete(final RDBUtil influxdb, final SQL sql,
             final RDBWriteChannel channel) throws Exception
     {
         // Delete any existing entries
-        final Connection connection = rdb.getConnection();
+        final Connection connection = influxdb.getConnection();
         final PreparedStatement del = connection.prepareStatement(sql.enum_delete_by_channel);
         try
         {
@@ -53,17 +53,17 @@ public class EnumMetaDataHelper
     }
 
     /** Insert meta data for channel into archive
-     *  @param rdb RDBUtil
+     *  @param influxdb RDBUtil
      *  @param sql SQL statements
      *  @param channel Channel
      *  @param states Enumeration labels
      *  @throws Exception on error
      */
     @SuppressWarnings("nls")
-    public static void insert(final RDBUtil rdb, final SQL sql, final RDBWriteChannel channel,
+    public static void insert(final RDBUtil influxdb, final SQL sql, final RDBWriteChannel channel,
             final List<String> states) throws Exception
     {
-        final Connection connection = rdb.getConnection();
+        final Connection connection = influxdb.getConnection();
         // Define the new ones
         final PreparedStatement insert = connection.prepareStatement(sql.enum_insert_channel_num_val);
         try

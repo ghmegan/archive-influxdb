@@ -1,4 +1,4 @@
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.io.IOException;
 import java.io.InputStream;

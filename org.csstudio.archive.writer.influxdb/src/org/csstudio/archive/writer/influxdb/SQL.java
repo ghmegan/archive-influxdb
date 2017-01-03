@@ -5,11 +5,11 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.util.logging.Logger;
 
-import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
+import org.csstudio.platform.utility.influxdb.RDBUtil.Dialect;
 
 /** SQL statements for writing archive data
  *  @author Kay Kasemir

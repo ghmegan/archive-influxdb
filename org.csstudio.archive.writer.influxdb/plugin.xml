@@ -4,7 +4,7 @@
    <extension
          point="org.csstudio.archive.writer.ArchiveWriter">
       <ArchiveWriter
-            class="org.csstudio.archive.writer.rdb.RDBArchiveWriter">
+            class="org.csstudio.archive.writer.influxdb.RDBArchiveWriter">
       </ArchiveWriter>
    </extension>
 

@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -22,14 +22,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.csstudio.archive.rdb.RDBArchivePreferences;
+import org.csstudio.archive.influxdb.RDBArchivePreferences;
 import org.csstudio.archive.vtype.MetaDataHelper;
 import org.csstudio.archive.vtype.TimestampHelper;
 import org.csstudio.archive.vtype.VTypeHelper;
 import org.csstudio.archive.writer.ArchiveWriter;
 import org.csstudio.archive.writer.WriteChannel;
-import org.csstudio.platform.utility.rdb.RDBUtil;
-import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
+import org.csstudio.platform.utility.influxdb.RDBUtil;
+import org.csstudio.platform.utility.influxdb.RDBUtil.Dialect;
 import org.diirt.util.array.ListNumber;
 import org.diirt.vtype.AlarmSeverity;
 import org.diirt.vtype.Display;
@@ -58,7 +58,7 @@ public class RDBArchiveWriter implements ArchiveWriter
     final private boolean use_array_blob;
 
     /** RDB connection */
-    final private RDBUtil rdb;
+    final private RDBUtil influxdb;
 
     /** SQL statements */
     final private SQL sql;
@@ -124,10 +124,10 @@ public class RDBArchiveWriter implements ArchiveWriter
             final String schema, boolean use_array_blob) throws Exception
     {
         this.use_array_blob = use_array_blob;
-        rdb = RDBUtil.connect(url, user, password, false);
-        sql = new SQL(rdb.getDialect(), schema);
-        severities = new SeverityCache(rdb, sql);
-        stati = new StatusCache(rdb, sql);
+        influxdb = RDBUtil.connect(url, user, password, false);
+        sql = new SQL(influxdb.getDialect(), schema);
+        severities = new SeverityCache(influxdb, sql);
+        stati = new StatusCache(influxdb, sql);
 
         // JDBC and RDBUtil default to auto-commit being on.
         //
@@ -135,7 +135,7 @@ public class RDBArchiveWriter implements ArchiveWriter
         // auto-commit to be off, so this code assumes that
         // auto-commit is off, then enables it briefly as needed,
         // and otherwise commits/rolls back.
-        rdb.getConnection().setAutoCommit(false);
+        influxdb.getConnection().setAutoCommit(false);
     }
 
     @Override
@@ -145,7 +145,7 @@ public class RDBArchiveWriter implements ArchiveWriter
         RDBWriteChannel channel = channels.get(name);
         if (channel == null)
         {    // Get channel information from RDB
-            final Connection connection = rdb.getConnection();
+            final Connection connection = influxdb.getConnection();
             // connection.setReadOnly(true);
             connection.setAutoCommit(true);
             final PreparedStatement statement = connection.prepareStatement(sql.channel_sel_by_name);
@@ -172,10 +172,10 @@ public class RDBArchiveWriter implements ArchiveWriter
     @Override
     public void addSample(final WriteChannel channel, final VType sample) throws Exception
     {
-        final RDBWriteChannel rdb_channel = (RDBWriteChannel) channel;
-        writeMetaData(rdb_channel, sample);
-        batchSample(rdb_channel, sample);
-        batched_channel.add(rdb_channel);
+        final RDBWriteChannel influxdb_channel = (RDBWriteChannel) channel;
+        writeMetaData(influxdb_channel, sample);
+        batchSample(influxdb_channel, sample);
+        batched_channel.add(influxdb_channel);
         batched_samples.add(sample);
     }
 
@@ -198,10 +198,10 @@ public class RDBArchiveWriter implements ArchiveWriter
                 return;
 
             // Clear enumerated meta data, replace numeric
-            EnumMetaDataHelper.delete(rdb, sql, channel);
-            NumericMetaDataHelper.delete(rdb, sql, channel);
-            NumericMetaDataHelper.insert(rdb, sql, channel, display);
-            rdb.getConnection().commit();
+            EnumMetaDataHelper.delete(influxdb, sql, channel);
+            NumericMetaDataHelper.delete(influxdb, sql, channel);
+            NumericMetaDataHelper.insert(influxdb, sql, channel, display);
+            influxdb.getConnection().commit();
             channel.setMetaData(display);
         }
         else if (sample instanceof VEnum)
@@ -211,10 +211,10 @@ public class RDBArchiveWriter implements ArchiveWriter
                 return;
 
             // Clear numeric meta data, set enumerated in RDB
-            NumericMetaDataHelper.delete(rdb, sql, channel);
-            EnumMetaDataHelper.delete(rdb, sql, channel);
-            EnumMetaDataHelper.insert(rdb, sql, channel, labels);
-            rdb.getConnection().commit();
+            NumericMetaDataHelper.delete(influxdb, sql, channel);
+            EnumMetaDataHelper.delete(influxdb, sql, channel);
+            EnumMetaDataHelper.insert(influxdb, sql, channel, labels);
+            influxdb.getConnection().commit();
             channel.setMetaData(labels);
         }
     }
@@ -233,12 +233,12 @@ public class RDBArchiveWriter implements ArchiveWriter
     private PreparedStatement createInsertPrepareStatement(String sqlQuery)
             throws SQLException, Exception {
         PreparedStatement statement = null;
-        if (rdb.getDialect() == Dialect.PostgreSQL
+        if (influxdb.getDialect() == Dialect.PostgreSQL
                 && Preferences.isUsePostgresCopy()) {
-            statement = new PGCopyPreparedStatement(rdb.getConnection(),
+            statement = new PGCopyPreparedStatement(influxdb.getConnection(),
                     sqlQuery);
         } else {
-            statement = rdb.getConnection().prepareStatement(sqlQuery);
+            statement = influxdb.getConnection().prepareStatement(sqlQuery);
         }
         if (SQL_TIMEOUT_SECS > 0)
             statement.setQueryTimeout(SQL_TIMEOUT_SECS);
@@ -258,8 +258,8 @@ public class RDBArchiveWriter implements ArchiveWriter
         final Status status = stati.findOrCreate(VTypeHelper.getMessage(sample));
 
         // Severity/status cache may enable auto-commit
-        if (rdb.getConnection().getAutoCommit() == true)
-            rdb.getConnection().setAutoCommit(false);
+        if (influxdb.getConnection().getAutoCommit() == true)
+            influxdb.getConnection().setAutoCommit(false);
 
         // Start with most likely cases and highest precision: Double, ...
         // Then going down in precision to integers, finally strings...
@@ -321,7 +321,7 @@ public class RDBArchiveWriter implements ArchiveWriter
 
         if (additional == null)
         {    // No more array elements, only scalar
-            switch (rdb.getDialect())
+            switch (influxdb.getDialect())
             {
             case Oracle:
                 insert_double_sample.setString(6, " ");
@@ -349,7 +349,7 @@ public class RDBArchiveWriter implements ArchiveWriter
                 dout.writeDouble(additional.getDouble(i));
             dout.close();
             final byte[] asBytes = bout.toByteArray();
-            if (rdb.getDialect() == Dialect.Oracle)
+            if (influxdb.getDialect() == Dialect.Oracle)
             {
                 insert_double_sample.setString(6, "d");
                 insert_double_sample.setBytes(7, asBytes);
@@ -396,7 +396,7 @@ public class RDBArchiveWriter implements ArchiveWriter
         {
             if (insert_array_sample == null)
                 insert_array_sample =
-                    rdb.getConnection().prepareStatement(
+                    influxdb.getConnection().prepareStatement(
                         sql.sample_insert_double_array_element);
             final int N = additional.size();
             for (int i = 1; i < N; i++)
@@ -416,7 +416,7 @@ public class RDBArchiveWriter implements ArchiveWriter
                 else
                     insert_array_sample.setDouble(4, additional.getDouble(i));
                 // MySQL nanosecs
-                if (rdb.getDialect() == Dialect.MySQL || rdb.getDialect() == Dialect.PostgreSQL)
+                if (influxdb.getDialect() == Dialect.MySQL || influxdb.getDialect() == Dialect.PostgreSQL)
                     insert_array_sample.setInt(5, stamp.getNanos());
                 // Batch
                 insert_array_sample.addBatch();
@@ -474,7 +474,7 @@ public class RDBArchiveWriter implements ArchiveWriter
         insert_xx.setInt(3, severity);
         insert_xx.setInt(4, status.getId());
         // MySQL nanosecs
-        if (rdb.getDialect() == Dialect.MySQL  ||  rdb.getDialect() == Dialect.PostgreSQL)
+        if (influxdb.getDialect() == Dialect.MySQL  ||  influxdb.getDialect() == Dialect.PostgreSQL)
             insert_xx.setInt(6, stamp.getNanos());
         // Batch
         insert_xx.addBatch();
@@ -562,7 +562,7 @@ public class RDBArchiveWriter implements ArchiveWriter
             // each batched insert, but Oracle 10g and 11g just throw
             // an exception
             insert.executeBatch();
-            rdb.getConnection().commit();
+            influxdb.getConnection().commit();
         }
         catch (final Exception ex)
         {
@@ -575,7 +575,7 @@ public class RDBArchiveWriter implements ArchiveWriter
                 // Still: Commit what's committable.
                 // Unfortunately no way to know what failed,
                 // and no way to re-submit the 'remaining' inserts.
-                rdb.getConnection().commit();
+                influxdb.getConnection().commit();
             }
             catch (Exception nested)
             {
@@ -614,7 +614,7 @@ public class RDBArchiveWriter implements ArchiveWriter
 //                //always false as we don't insert arrays in this function
 //                insert_double_sample.setBoolean(6, false);
 //                // MySQL nanosecs
-//                if (rdb.getDialect() == Dialect.MySQL || rdb.getDialect() == Dialect.PostgreSQL)
+//                if (influxdb.getDialect() == Dialect.MySQL || influxdb.getDialect() == Dialect.PostgreSQL)
 //                    insert_double_sample.setInt(7, stamp.getNanos());
 //                insert_double_sample.executeUpdate();
 //            }
@@ -630,7 +630,7 @@ public class RDBArchiveWriter implements ArchiveWriter
 //                insert_long_sample.setLong(5, num.getValue());
 //                insert_long_sample.setBoolean(6, false);
 //                // MySQL nanosecs
-//                if (rdb.getDialect() == Dialect.MySQL || rdb.getDialect() == Dialect.PostgreSQL)
+//                if (influxdb.getDialect() == Dialect.MySQL || influxdb.getDialect() == Dialect.PostgreSQL)
 //                    insert_long_sample.setInt(7, stamp.getNanos());
 //                insert_long_sample.executeUpdate();
 //            }
@@ -646,7 +646,7 @@ public class RDBArchiveWriter implements ArchiveWriter
 //                insert_long_sample.setLong(5, num.getValue());
 //                insert_long_sample.setBoolean(6, false);
 //                // MySQL nanosecs
-//                if (rdb.getDialect() == Dialect.MySQL || rdb.getDialect() == Dialect.PostgreSQL)
+//                if (influxdb.getDialect() == Dialect.MySQL || influxdb.getDialect() == Dialect.PostgreSQL)
 //                    insert_long_sample.setInt(7, stamp.getNanos());
 //                insert_long_sample.executeUpdate();
 //            }
@@ -660,11 +660,11 @@ public class RDBArchiveWriter implements ArchiveWriter
 //                insert_txt_sample.setString(5, txt);
 //                insert_txt_sample.setBoolean(6, false);
 //                // MySQL nanosecs
-//                if (rdb.getDialect() == Dialect.MySQL || rdb.getDialect() == Dialect.PostgreSQL)
+//                if (influxdb.getDialect() == Dialect.MySQL || influxdb.getDialect() == Dialect.PostgreSQL)
 //                    insert_txt_sample.setInt(7, stamp.getNanos());
 //                insert_txt_sample.executeUpdate();
 //            }
-//            rdb.getConnection().commit();
+//            influxdb.getConnection().commit();
 //        }
 //        catch (Exception ex)
 //        {
@@ -720,6 +720,6 @@ public class RDBArchiveWriter implements ArchiveWriter
             }
             insert_txt_sample = null;
         }
-        rdb.close();
+        influxdb.close();
     }
 }

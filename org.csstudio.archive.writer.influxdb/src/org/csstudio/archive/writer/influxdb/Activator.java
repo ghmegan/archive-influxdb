@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.util.logging.Logger;
 
@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 public class Activator
 {
     /** Plugin ID defined in MANIFEST.MF */
-    public static final String ID = "org.csstudio.archive.writer.rdb";
+    public static final String ID = "org.csstudio.archive.writer.influxdb";
 
     /** @return Logger for the plugin ID */
     public static Logger getLogger()

@@ -5,14 +5,14 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.csstudio.platform.utility.rdb.RDBUtil;
-import org.csstudio.platform.utility.rdb.StringID;
-import org.csstudio.platform.utility.rdb.StringIDHelper;
+import org.csstudio.platform.utility.influxdb.RDBUtil;
+import org.csstudio.platform.utility.influxdb.StringID;
+import org.csstudio.platform.utility.influxdb.StringIDHelper;
 import org.diirt.vtype.AlarmSeverity;
 
 /** Caching RDB interface to severity info.
@@ -28,9 +28,9 @@ public class SeverityCache
         new HashMap<AlarmSeverity, Integer>();
 
     /** Constructor */
-    public SeverityCache(final RDBUtil rdb, final SQL sql)
+    public SeverityCache(final RDBUtil influxdb, final SQL sql)
     {
-        helper = new StringIDHelper(rdb,
+        helper = new StringIDHelper(influxdb,
             sql.severity_table, sql.severity_id_column, sql.severity_name_column);
     }
 

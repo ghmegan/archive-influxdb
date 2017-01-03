@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,7 +13,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.text.NumberFormat;
 
-import org.csstudio.platform.utility.rdb.RDBUtil;
+import org.csstudio.platform.utility.influxdb.RDBUtil;
 import org.diirt.vtype.Display;
 
 /** Helper for handling the numeric meta data table.
@@ -27,16 +27,16 @@ public class NumericMetaDataHelper
     }
 
     /** Delete meta data for channel
-     *  @param rdb RDBUtil
+     *  @param influxdb RDBUtil
      *  @param sql SQL statements
      *  @param channel Channel
      *  @throws Exception on error
      */
-    public static void delete(final RDBUtil rdb, final SQL sql,
+    public static void delete(final RDBUtil influxdb, final SQL sql,
             final RDBWriteChannel channel) throws Exception
     {
         // Delete any existing entries
-        final Connection connection = rdb.getConnection();
+        final Connection connection = influxdb.getConnection();
         final PreparedStatement del = connection.prepareStatement(
                 sql.numeric_meta_delete_by_channel);
         try
@@ -51,16 +51,16 @@ public class NumericMetaDataHelper
     }
 
     /** Insert meta data for channel into archive
-     *  @param rdb RDBUtil
+     *  @param influxdb RDBUtil
      *  @param sql SQL statements
      *  @param channel Channel
      *  @param meta Meta data
      *  @throws Exception on error
      */
-    public static void insert(final RDBUtil rdb, final SQL sql,
+    public static void insert(final RDBUtil influxdb, final SQL sql,
             final RDBWriteChannel channel, final Display meta) throws Exception
     {
-        final Connection connection = rdb.getConnection();
+        final Connection connection = influxdb.getConnection();
         final PreparedStatement insert = connection.prepareStatement(sql.numeric_meta_insert);
         try
         {

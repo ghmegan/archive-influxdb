@@ -5,9 +5,9 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
-import org.csstudio.platform.utility.rdb.StringID;
+import org.csstudio.platform.utility.influxdb.StringID;
 
 /** Status ID
  *  @author Kay Kasemir
