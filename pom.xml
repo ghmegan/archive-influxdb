@@ -5,7 +5,10 @@
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <modules>
+    <module>org.csstudio.archive.influxdb</module>
     <module>org.csstudio.archive.reader.influxdb</module>
     <module>org.csstudio.archive.reader.influxdb.test</module>
+    <module>org.csstudio.archive.writer.influxdb</module>
+    <module>org.csstudio.archive.writer.influxdb.test</module>
   </modules>
 </project>
