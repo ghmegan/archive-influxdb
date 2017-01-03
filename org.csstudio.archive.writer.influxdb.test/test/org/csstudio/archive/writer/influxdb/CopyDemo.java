@@ -5,19 +5,19 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 
 import org.csstudio.archive.config.EngineConfig;
-import org.csstudio.archive.config.rdb.RDBArchiveConfig;
-import org.csstudio.archive.config.rdb.RDBGroupConfig;
-import org.csstudio.archive.config.rdb.RDBSampleMode;
+import org.csstudio.archive.config.influxdb.RDBArchiveConfig;
+import org.csstudio.archive.config.influxdb.RDBGroupConfig;
+import org.csstudio.archive.config.influxdb.RDBSampleMode;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.ValueIterator;
-import org.csstudio.archive.reader.rdb.RDBArchiveReader;
+import org.csstudio.archive.reader.influxdb.RDBArchiveReader;
 import org.csstudio.archive.vtype.VTypeHelper;
 import org.csstudio.archive.writer.ArchiveWriter;
 import org.csstudio.archive.writer.WriteChannel;

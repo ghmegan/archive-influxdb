@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.writer.rdb;
+package org.csstudio.archive.writer.influxdb;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
@@ -49,15 +49,15 @@ public class RDBArchiveWriterTest
     public void connect() throws Exception
     {
         final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_rdb_url");
-        final String user = settings.getString("archive_rdb_user");
-        final String password = settings.getString("archive_rdb_password");
-        final String schema = settings.getString("archive_rdb_schema");
+        final String url = settings.getString("archive_influxdb_url");
+        final String user = settings.getString("archive_influxdb_user");
+        final String password = settings.getString("archive_influxdb_password");
+        final String schema = settings.getString("archive_influxdb_schema");
         name = settings.getString("archive_channel");
         array_name = settings.getString("archive_array_channel");
         if (url == null  ||  user == null  ||  password == null  ||  name == null)
         {
-            System.out.println("Skipping test, no archive_rdb_url, user, password");
+            System.out.println("Skipping test, no archive_influxdb_url, user, password");
             return;
         }
         final boolean use_blob = Boolean.parseBoolean(settings.getString("archive_use_blob"));
