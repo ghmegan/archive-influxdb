@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: RDB Archive library
-Bundle-SymbolicName: org.csstudio.archive.rdb;singleton:=true
+Bundle-SymbolicName: org.csstudio.archive.influxdb;singleton:=true
 Bundle-Version: 4.0.0.qualifier
 Bundle-Vendor: Kay Kasemir <kasemirk@ornl.gov> - SNS
 Bundle-Description: Archive RDB support library
@@ -10,5 +10,5 @@ Require-Bundle: org.eclipse.core.runtime,
  org.csstudio.security;bundle-version="1.0.0"
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .
-Export-Package: org.csstudio.archive.rdb
+Export-Package: org.csstudio.archive.influxdb
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
