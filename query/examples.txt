@@ -1,0 +1,15 @@
+List all of the CPU measurements in the last 7 days
+
+   SELECT * FROM cpu WHERE time > now() - 7d
+
+Order those by timestamp
+
+   SELECT * FROM cpu WHERE time > now() - 7d ORDER BY time
+
+Return only the earliest (least recent) timestamp in the past 7 days
+
+   SELECT * FROM cpu WHERE time > now() - 7d ORDER BY time LIMIT 1
+
+Return only the latest (most recent) timestamp in the past 7 days
+
+   SELECT * FROM cpu WHERE time > now() - 7d ORDER BY time DESC LIMIT 1
