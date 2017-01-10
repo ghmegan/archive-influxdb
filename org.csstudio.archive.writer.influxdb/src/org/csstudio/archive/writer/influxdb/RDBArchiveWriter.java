@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
-import org.csstudio.archive.influxdb.RDBArchivePreferences;
+import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.vtype.MetaDataHelper;
 import org.csstudio.archive.vtype.TimestampHelper;
 import org.csstudio.archive.vtype.VTypeHelper;
@@ -51,7 +51,7 @@ public class RDBArchiveWriter implements ArchiveWriter
     /** Status string for <code>Double.NaN</code> samples */
     final private static String NOT_A_NUMBER_STATUS = "NaN";
 
-    final private int SQL_TIMEOUT_SECS = RDBArchivePreferences.getSQLTimeoutSecs();
+    final private int SQL_TIMEOUT_SECS = InfluxDBArchivePreferences.getSQLTimeoutSecs();
 
     final private int MAX_TEXT_SAMPLE_LENGTH = Preferences.getMaxStringSampleLength();
 
@@ -107,9 +107,9 @@ public class RDBArchiveWriter implements ArchiveWriter
      */
     public RDBArchiveWriter() throws Exception
     {
-        this(RDBArchivePreferences.getURL(), RDBArchivePreferences.getUser(),
-                RDBArchivePreferences.getPassword(), RDBArchivePreferences.getSchema(),
-                RDBArchivePreferences.useArrayBlob());
+        this(InfluxDBArchivePreferences.getURL(), InfluxDBArchivePreferences.getUser(),
+                InfluxDBArchivePreferences.getPassword(), InfluxDBArchivePreferences.getSchema(),
+                InfluxDBArchivePreferences.useArrayBlob());
     }
 
     /** Initialize

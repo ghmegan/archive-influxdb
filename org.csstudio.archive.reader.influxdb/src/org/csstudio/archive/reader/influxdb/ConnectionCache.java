@@ -7,7 +7,6 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
-import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -15,20 +14,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.csstudio.platform.utility.rdb.RDBUtil;
-import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
+import org.influxdb.InfluxDB;
+import org.influxdb.InfluxDBFactory;
 
-/** RDB Connection cache.
+/** InfluxDB Connection Cache
  *
- *  <p>RDBArchiveReaders tend to be created in bursts as data for all channels
- *  in a plot is updated.
- *  This helper caches the connection so that only the first reader will
- *  actually connect. Other 'concurrent' readers re-use the same connection,
- *  and finally the connection is closed as all readers release it.
- *
- *  <p>Connections are marked read-only which helps at least MySQL.
- *
- *  @author Kay Kasemir
+ *  @author Megan Grodowitz
  */
 public class ConnectionCache
 {
@@ -42,7 +33,7 @@ public class ConnectionCache
         ID(final String url, final String user, final String password)
         {
             this.url = Objects.requireNonNull(url);
-            this.user = Objects.requireNonNull(user);
+            this.user = user;
             this.password = password;
         }
 
@@ -68,26 +59,20 @@ public class ConnectionCache
     {
         private final ID id;
         private final AtomicInteger references = new AtomicInteger(1);
-        private final RDBUtil rdb;
+        private final InfluxDB influxdb;
 
-        Entry(final ID id, final RDBUtil rdb)
+        Entry(final ID id, final InfluxDB influxdb)
         {
             this.id = id;
-            this.rdb = rdb;
+            this.influxdb = influxdb;
         }
 
         /** @return JDBC connection, MUST NOT BE CLOSED
          *  @throws Exception
          */
-        public Connection getConnection() throws Exception
+        public InfluxDB getConnection() throws Exception
         {
-            return rdb.getConnection();
-        }
-
-        /** @return RDB Dialect */
-        public Dialect getDialect()
-        {
-            return rdb.getDialect();
+            return this.influxdb;
         }
     }
 
@@ -127,14 +112,28 @@ public class ConnectionCache
             if (entry == null)
             {
                 logger.log(Level.FINE, "Connecting to {0}", url);
-                entry = new Entry(id, RDBUtil.connect(url, user, password, false));
-                // Read-only allows MySQL to use load balancing
-                entry.getConnection().setReadOnly(true);
-                // Avoid caching for PostgreSQL
-                if(entry.getDialect() != RDBUtil.Dialect.PostgreSQL)
+                InfluxDB influxdb;
+                if (user == null || password == null)
                 {
-                    cache.add(entry);
+                    influxdb = InfluxDBFactory.connect(url);
                 }
+                else {
+                    influxdb = InfluxDBFactory.connect(url, user, password);
+                }
+
+                try
+                {
+                    // Have to do something like this because connect fails silently.
+                    influxdb.version();
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Failed to connect to InfluxDB as user " + user + " at " + url, e);
+                }
+
+                entry = new Entry(id, influxdb);
+                // TODO: Can we set read only mode for this connection? Do we need to?
+                //entry.getConnection().setReadOnly(true);
             }
             return entry;
         }
@@ -151,7 +150,7 @@ public class ConnectionCache
                 return; // Still in use
             cache.remove(entry);
         }
-        entry.rdb.close();
+        entry.influxdb.close();
         logger.log(Level.FINE, "Closed {0}", entry.id.url);
     }
 

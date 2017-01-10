@@ -1,3 +1,12 @@
+CREATE DATABASE testdb
+
+SHOW DATABASES
+
+USE testdb
+
+
+
+
 List all of the CPU measurements in the last 7 days
 
    SELECT * FROM cpu WHERE time > now() - 7d

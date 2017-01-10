@@ -43,9 +43,10 @@ public class RDBArchiveReaderFactory implements ArchiveReaderFactory
         {
             final String user = RDBArchivePreferences.getUser();
             final String password = RDBArchivePreferences.getPassword();
-            final String schema = RDBArchivePreferences.getSchema();
-            final String stored_proc = Preferences.getStoredProcedure();
-            return new RDBArchiveReader(url, user, password, schema, stored_proc);
+            //TODO: cleanup
+            //final String schema = RDBArchivePreferences.getSchema();
+            //final String stored_proc = Preferences.getStoredProcedure();
+            return new InfluxDBArchiveReader(url, user, password);
         }
     }
 }

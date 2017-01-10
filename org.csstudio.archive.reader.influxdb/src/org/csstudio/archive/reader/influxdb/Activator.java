@@ -13,13 +13,13 @@ import org.eclipse.core.runtime.Plugin;
 import org.osgi.framework.BundleContext;
 
 /** Plugin activator
- *  @author Kay Kasemir
+ *  @author Megan Grodowitz
  */
 @SuppressWarnings("nls")
 public class Activator extends Plugin
 {
     /** Plugin ID defined in MANIFEST.MF */
-    final public static String ID = "org.csstudio.archive.reader.rdb";
+    final public static String ID = "org.csstudio.archive.reader.influxdb";
 
     private static Activator instance;
 

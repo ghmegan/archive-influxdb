@@ -17,7 +17,6 @@ import java.time.Instant;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.csstudio.apputil.test.TestProperties;
 import org.csstudio.apputil.time.BenchmarkTimer;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
@@ -37,7 +36,7 @@ import org.junit.Test;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class RDBArchiveReaderTest
+public class InfluxDBArchiveReaderTest
 {
     final private static Duration TIMERANGE = Duration.ofHours(10);
     final private static Duration WAVEFORM_TIMERANGE = Duration.ofMinutes(20);
@@ -49,36 +48,54 @@ public class RDBArchiveReaderTest
     @SuppressWarnings("unused")
     final private static SimpleDateFormat parser = new SimpleDateFormat("yyyy/MM/dd");
 
-    private RDBArchiveReader reader;
-    private String proc, name, array_name;
+    private InfluxDBArchiveReader reader;
+    private String proc, channel_name, array_channel_name;
 
     @Before
     public void connect() throws Exception
     {
-        final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_rdb_url");
-        final String user = settings.getString("archive_rdb_user");
-        final String password = settings.getString("archive_rdb_password");
-        final String schema = settings.getString("archive_rdb_schema");
-        proc = settings.getString("archive_rdb_stored_procedure");
-        if (proc == null)
-            proc = "";
-        name = settings.getString("archive_channel");
-        array_name = settings.getString("archive_array_channel");
-        if (url == null  ||  user == null  ||  password == null  ||  name == null)
+        //        final TestProperties settings = new TestProperties();
+        //        final String url = settings.getString("archive_rdb_url");
+        //        final String user = settings.getString("archive_rdb_user");
+        //        final String password = settings.getString("archive_rdb_password");
+        //        name = settings.getString("archive_channel");
+        //        array_name = settings.getString("archive_array_channel");
+
+        String archive_url = "http://localhost:8086";
+        String user = null;
+        String password = null;
+
+        //        archive_url = InfluxDBArchivePreferences.getURL();
+        //        user = InfluxDBArchivePreferences.getUser();
+        //        password = InfluxDBArchivePreferences.getPassword();
+
+        channel_name = "testPV";
+        array_channel_name = "testPV_Array";
+
+
+        if (archive_url == null  ||  channel_name == null)
         {
-            System.out.println("Skipping test, no archive_rdb_url, user, password, name");
+            System.out.println("Skipping test, missing one of: archive_url, channel_name");
             reader = null;
             return;
         }
-        final boolean use_blob = Boolean.parseBoolean(settings.getString("archive_use_blob"));
-        if (use_blob)
-            System.out.println("Running read test with BLOB");
-        else
-            System.out.println("Running read test with old array_val table");
-        reader = new RDBArchiveReader(url, user, password, schema, proc, use_blob);
 
-        assertEquals(use_blob, reader.useArrayBlob());
+        if (user == null  ||  password == null)
+        {
+            System.out.println("Trying connections with no username or password....");
+            user = null;
+            password = null;
+        }
+
+        try
+        {
+            reader = new InfluxDBArchiveReader(archive_url, user, password);
+        }
+        catch (Exception e)
+        {
+            System.err.println("Could not create archive reader");
+            e.printStackTrace();
+        }
     }
 
     @After
@@ -112,7 +129,7 @@ public class RDBArchiveReaderTest
     {
         if (reader == null)
             return;
-        assertEquals("RDB", reader.getServerName());
+        assertEquals("InfluxDB", reader.getServerName());
         System.out.println(reader.getDescription());
         for (ArchiveInfo arch : reader.getArchiveInfos())
             System.out.println(arch);
@@ -124,7 +141,7 @@ public class RDBArchiveReaderTest
     {
         if (reader == null)
             return;
-        final String pattern = name.substring(0, name.length()-1) + "?";
+        final String pattern = channel_name.substring(0, channel_name.length()-1) + "?";
         System.out.println("Channels matching a pattern: " + pattern);
         final String[] names = reader.getNamesByPattern(1, pattern);
         for (String name : names)
@@ -138,7 +155,7 @@ public class RDBArchiveReaderTest
     {
         if (reader == null)
             return;
-        final String pattern = "." + name.replace("(", "\\(").substring(1, name.length()-3) + ".*";
+        final String pattern = "." + channel_name.replace("(", "\\(").substring(1, channel_name.length()-3) + ".*";
         System.out.println("Channels matching a regular expression: " + pattern);
         final String[] names = reader.getNamesByRegExp(1, pattern);
         for (String name : names)
@@ -152,12 +169,12 @@ public class RDBArchiveReaderTest
     {
         if (reader == null)
             return;
-        System.out.println("Raw samples for " + name + ":");
+        System.out.println("Raw samples for " + channel_name + ":");
         final Instant end = Instant.now();
         final Instant start = end.minus(TIMERANGE);
 
         final BenchmarkTimer timer = new BenchmarkTimer();
-        final ValueIterator values = reader.getRawValues(0, name, start, end);
+        final ValueIterator values = reader.getRawValues(0, channel_name, start, end);
 
         if (dump)
         {
@@ -216,21 +233,21 @@ public class RDBArchiveReaderTest
     @Test
     public void testRawWaveformData() throws Exception
     {
-        if (reader == null  ||  array_name == null)
+        if (reader == null  ||  array_channel_name == null)
             return;
-        System.out.println("Raw samples for waveform " + array_name + ":");
+        System.out.println("Raw samples for waveform " + array_channel_name + ":");
 
-        if (reader.useArrayBlob())
-            System.out.println(".. using BLOB");
-        else
-            System.out.println(".. using non-BLOB array table");
+        //        if (reader.useArrayBlob())
+        //            System.out.println(".. using BLOB");
+        //        else
+        //            System.out.println(".. using non-BLOB array table");
 
         final Instant end = Instant.now();
         final Instant start = end.minus(WAVEFORM_TIMERANGE);
 
         // Cancel after 10 secs
         // scheduleCancellation(reader, 10.0);
-        final ValueIterator values = reader.getRawValues(0, array_name, start, end);
+        final ValueIterator values = reader.getRawValues(0, array_channel_name, start, end);
         while (values.hasNext())
         {
             final VType value = values.next();
@@ -245,13 +262,13 @@ public class RDBArchiveReaderTest
     {
         if (reader == null)
             return;
-        System.out.println("Optimized samples for " + name + ":");
+        System.out.println("Optimized samples for " + channel_name + ":");
         System.out.println("-- Java implementation --");
 
         final Instant end = Instant.now();
         final Instant start = end.minus(TIMERANGE);
 
-        final ValueIterator raw = reader.getRawValues(0, name, start, end);
+        final ValueIterator raw = reader.getRawValues(0, channel_name, start, end);
         final double seconds = TimeDuration.toSecondsDouble(Duration.between(start, end)) / BUCKETS;
         System.out.println("Time range: "
                 + TimestampHelper.format(start) + " ... " + TimestampHelper.format(end)
@@ -274,8 +291,8 @@ public class RDBArchiveReaderTest
             return;
         if (proc.isEmpty())
             System.out.println("No stored procedure available");
-        final int channel_id = reader.getChannelID(name);
-        System.out.println("Optimized samples for " + name + " (" + channel_id + "):");
+        final int channel_id = reader.getChannelID(channel_name);
+        System.out.println("Optimized samples for " + channel_name + " (" + channel_id + "):");
         System.out.println("-- Stored procedure --");
 
         final Instant end = Instant.now();

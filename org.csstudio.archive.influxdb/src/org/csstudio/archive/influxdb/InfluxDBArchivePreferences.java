@@ -11,63 +11,44 @@ import org.csstudio.security.preferences.SecurePreferences;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.preferences.IPreferencesService;
 
-/** Access to RDB archive preferences
- *  @author Kay Kasemir
+/** Access to InfluxDB archive preferences
+ *  @author Megan Grodowitz
  */
 @SuppressWarnings("nls")
-public class RDBArchivePreferences
+public class InfluxDBArchivePreferences
 {
     public static final String URL = "url";
-    public static final String SCHEMA = "schema";
     public static final String USER = "user";
     public static final String PASSWORD = "password";
-    public static final String SQL_TIMEOUT = "sql_timeout";
-    public static final String USE_ARRAY_BLOB = "use_array_blob";
+    //TODO: How to use timeout with Influx? Possible with Java interface?
+    //public static final String TIMEOUT = "timeout";
 
-    /** @return URL of RDB archive server */
+    /** @return URL of InfluxDB archive server */
     public static String getURL()
     {
         return getString(URL);
     }
 
-    /** @return Schema for RDB tables or <code>null</code> */
-    public static String getSchema()
-    {
-        final String schema = getString(SCHEMA);
-        if (schema.endsWith("."))
-            return schema.substring(0, schema.length()-1);
-        return schema;
-    }
-
-    /** @return User name for RDB archive server */
+    /** @return User name for InfluxDB archive server */
     public static String getUser()
     {
         return getString(USER);
     }
 
-    /** @return Password for RDB archive server */
+    /** @return Password for InfluxDB archive server */
     public static String getPassword()
     {
         return SecurePreferences.get(Activator.ID, PASSWORD, null);
     }
 
-    /** @return SQL Timeout in seconds */
-    public static int getSQLTimeoutSecs()
-    {
-        final IPreferencesService prefs = Platform.getPreferencesService();
-        if (prefs == null)
-            return 0;
-        return prefs.getInt(Activator.ID, SQL_TIMEOUT, 0, null);
-    }
-
-    /** @return <code>true</code> if a BLOB should be used for array samples */
-    public static boolean useArrayBlob()
-    {
-        final IPreferencesService prefs = Platform.getPreferencesService();
-        if (prefs == null)
-            return false;
-        return prefs.getBoolean(Activator.ID, USE_ARRAY_BLOB, true, null);
-    }
+    //    /** @return Timeout in seconds */
+    //    public static int getTimeoutSecs()
+    //    {
+    //        final IPreferencesService prefs = Platform.getPreferencesService();
+    //        if (prefs == null)
+    //            return 0;
+    //        return prefs.getInt(Activator.ID, TIMEOUT, 0, null);
+    //    }
 
     /** Get string preference
      *  @param key Preference key

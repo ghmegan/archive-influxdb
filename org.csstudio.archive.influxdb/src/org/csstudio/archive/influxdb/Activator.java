@@ -8,7 +8,7 @@
 package org.csstudio.archive.influxdb;
 
 /** (Not really a) Plugin Activator
- *  @author Kay Kasemir
+ *  @author Megan Grodowitz
  */
 public class Activator
 {

@@ -7,13 +7,13 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+//import java.sql.PreparedStatement;
+//import java.sql.ResultSet;
 import java.time.Instant;
 
-import org.csstudio.archive.vtype.TimestampHelper;
-import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
+//import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
 import org.diirt.vtype.VType;
+import org.influxdb.dto.QueryResult;
 
 /** Value Iterator that reads from the SAMPLE table.
  *  @author Kay Kasemir
@@ -22,10 +22,10 @@ import org.diirt.vtype.VType;
 public class RawSampleIterator extends AbstractRDBValueIterator
 {
     /** SELECT ... for the start .. end samples. */
-    private PreparedStatement sel_samples = null;
+    //private PreparedStatement sel_samples = null;
 
     /** Result of <code>sel_samples</code> */
-    private ResultSet result_set = null;
+    private QueryResult result_set = null;
 
     private boolean concurrency = false;
 
@@ -40,7 +40,7 @@ public class RawSampleIterator extends AbstractRDBValueIterator
      *  @param end End time
      *  @throws Exception on error
      */
-    public RawSampleIterator(final RDBArchiveReader reader,
+    public RawSampleIterator(final InfluxDBArchiveReader reader,
             final int channel_id, final Instant start,
             final Instant end, boolean concurrency) throws Exception
     {
@@ -52,7 +52,7 @@ public class RawSampleIterator extends AbstractRDBValueIterator
         }
         catch (Exception ex)
         {
-            if (! RDBArchiveReader.isCancellation(ex))
+            if (! InfluxDBArchiveReader.isCancellation(ex))
                 throw ex;
             // Else: Not a real error; return empty iterator
             value = null;
@@ -65,7 +65,7 @@ public class RawSampleIterator extends AbstractRDBValueIterator
      *  @param end End time
      *  @throws Exception on error
      */
-    public RawSampleIterator(final RDBArchiveReader reader,
+    public RawSampleIterator(final InfluxDBArchiveReader reader,
             final int channel_id, final Instant start,
             final Instant end) throws Exception
     {
@@ -80,82 +80,82 @@ public class RawSampleIterator extends AbstractRDBValueIterator
      */
     private void determineInitialSample(final Instant start, final Instant end) throws Exception
     {
-        java.sql.Timestamp start_stamp = TimestampHelper.toSQLTimestamp(start);
-        final java.sql.Timestamp end_stamp = TimestampHelper.toSQLTimestamp(end);
-
-        // Get time of initial sample
-        final PreparedStatement statement =
-                reader.getConnection().prepareStatement(reader.getSQL().sample_sel_initial_time);
-        reader.addForCancellation(statement);
-        try
-        {
-            statement.setInt(1, channel_id);
-            statement.setTimestamp(2, start_stamp);
-            if (statement.getParameterMetaData().getParameterCount() == 3)
-                statement.setTimestamp(3, end_stamp);
-            final ResultSet result = statement.executeQuery();
-            if (result.next())
-            {
-                // System.out.print("Start time corrected from " + start_stamp);
-                start_stamp = result.getTimestamp(1);
-                // Oracle has nanoseconds in TIMESTAMP, MySQL in separate column
-                if (reader.getDialect() == Dialect.MySQL || reader.getDialect() == Dialect.PostgreSQL)
-                    start_stamp.setNanos(result.getInt(2));
-                // System.out.println(" to " + start_stamp);
-            }
-        }
-        finally
-        {
-            reader.removeFromCancellation(statement);
-            statement.close();
-        }
-
-        boolean autoCommit = reader.getConnection().getAutoCommit();
-        // Disable auto-commit to determine sample with PostgreSQL when fetch direction is FETCH_FORWARD
-        if (reader.getDialect() == Dialect.PostgreSQL && autoCommit) {
-            reader.getConnection().setAutoCommit(false);
-        }
-
-        // Fetch the samples
-        if (reader.useArrayBlob()) {
-            if (concurrency && reader.getDialect() == Dialect.PostgreSQL) {
-                sel_samples = reader.getConnection().prepareStatement(
-                        reader.getSQL().sample_sel_by_id_start_end_with_blob, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            } else {
-                sel_samples = reader.getConnection().prepareStatement(
-                        reader.getSQL().sample_sel_by_id_start_end_with_blob);
-            }
-        } else {
-            if (concurrency && reader.getDialect() == Dialect.PostgreSQL) {
-                sel_samples = reader.getConnection().prepareStatement(
-                        reader.getSQL().sample_sel_by_id_start_end, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            } else {
-                sel_samples = reader.getConnection().prepareStatement(
-                        reader.getSQL().sample_sel_by_id_start_end);
-            }
-        }
-        sel_samples.setFetchDirection(ResultSet.FETCH_FORWARD);
-
-        // Test w/ ~170000 raw samples:
-        //     10  17   seconds
-        //    100   6   seconds
-        //   1000   4.x seconds
-        //  10000   4.x seconds
-        // 100000   4.x seconds
-        // So default is bad. 100 or 1000 are good.
-        // Bigger numbers don't help much in repeated tests, but
-        // just to be on the safe side, use a bigger number.
-        sel_samples.setFetchSize(Preferences.getFetchSize());
-
-        reader.addForCancellation(sel_samples);
-        sel_samples.setInt(1, channel_id);
-        sel_samples.setTimestamp(2, start_stamp);
-        sel_samples.setTimestamp(3, end_stamp);
-        result_set = sel_samples.executeQuery();
-        // Get first sample
-        if (result_set.next())
-            value = decodeSampleTableValue(result_set, true);
-        // else leave value null to indicate end of samples
+        //        java.sql.Timestamp start_stamp = TimestampHelper.toSQLTimestamp(start);
+        //        final java.sql.Timestamp end_stamp = TimestampHelper.toSQLTimestamp(end);
+        //
+        //        // Get time of initial sample
+        //        final PreparedStatement statement =
+        //                reader.getConnection().prepareStatement(reader.getQuery().sample_sel_initial_time);
+        //        reader.addForCancellation(statement);
+        //        try
+        //        {
+        //            statement.setInt(1, channel_id);
+        //            statement.setTimestamp(2, start_stamp);
+        //            if (statement.getParameterMetaData().getParameterCount() == 3)
+        //                statement.setTimestamp(3, end_stamp);
+        //            final ResultSet result = statement.executeQuery();
+        //            if (result.next())
+        //            {
+        //                // System.out.print("Start time corrected from " + start_stamp);
+        //                start_stamp = result.getTimestamp(1);
+        //                // Oracle has nanoseconds in TIMESTAMP, MySQL in separate column
+        //                if (reader.getDialect() == Dialect.MySQL || reader.getDialect() == Dialect.PostgreSQL)
+        //                    start_stamp.setNanos(result.getInt(2));
+        //                // System.out.println(" to " + start_stamp);
+        //            }
+        //        }
+        //        finally
+        //        {
+        //            reader.removeFromCancellation(statement);
+        //            statement.close();
+        //        }
+        //
+        //        boolean autoCommit = reader.getConnection().getAutoCommit();
+        //        // Disable auto-commit to determine sample with PostgreSQL when fetch direction is FETCH_FORWARD
+        //        if (reader.getDialect() == Dialect.PostgreSQL && autoCommit) {
+        //            reader.getConnection().setAutoCommit(false);
+        //        }
+        //
+        //        // Fetch the samples
+        //        if (reader.useArrayBlob()) {
+        //            if (concurrency && reader.getDialect() == Dialect.PostgreSQL) {
+        //                sel_samples = reader.getConnection().prepareStatement(
+        //                        reader.getQuery().sample_sel_by_id_start_end_with_blob, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        //            } else {
+        //                sel_samples = reader.getConnection().prepareStatement(
+        //                        reader.getQuery().sample_sel_by_id_start_end_with_blob);
+        //            }
+        //        } else {
+        //            if (concurrency && reader.getDialect() == Dialect.PostgreSQL) {
+        //                sel_samples = reader.getConnection().prepareStatement(
+        //                        reader.getQuery().sample_sel_by_id_start_end, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        //            } else {
+        //                sel_samples = reader.getConnection().prepareStatement(
+        //                        reader.getQuery().sample_sel_by_id_start_end);
+        //            }
+        //        }
+        //        sel_samples.setFetchDirection(ResultSet.FETCH_FORWARD);
+        //
+        //        // Test w/ ~170000 raw samples:
+        //        //     10  17   seconds
+        //        //    100   6   seconds
+        //        //   1000   4.x seconds
+        //        //  10000   4.x seconds
+        //        // 100000   4.x seconds
+        //        // So default is bad. 100 or 1000 are good.
+        //        // Bigger numbers don't help much in repeated tests, but
+        //        // just to be on the safe side, use a bigger number.
+        //        sel_samples.setFetchSize(Preferences.getFetchSize());
+        //
+        //        reader.addForCancellation(sel_samples);
+        //        sel_samples.setInt(1, channel_id);
+        //        sel_samples.setTimestamp(2, start_stamp);
+        //        sel_samples.setTimestamp(3, end_stamp);
+        //        result_set = sel_samples.executeQuery();
+        //        // Get first sample
+        //        if (result_set.next())
+        //            value = decodeSampleTableValue(result_set, true);
+        //        // else leave value null to indicate end of samples
     }
 
     /** {@inheritDoc} */
@@ -177,20 +177,20 @@ public class RawSampleIterator extends AbstractRDBValueIterator
         // Remember value to return...
         final VType result = value;
         // ... and prepare next value
-        try
-        {
-            if (result_set.next())
-                value = decodeSampleTableValue(result_set, true);
-            else
-                close();
-        }
-        catch (Exception ex)
-        {
-            close();
-            if (! RDBArchiveReader.isCancellation(ex))
-                throw ex;
-            // Else: Not a real error; return empty iterator
-        }
+        //        try
+        //        {
+        //            if (result_set.next())
+        //                value = decodeSampleTableValue(result_set, true);
+        //            else
+        //                close();
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            close();
+        //            if (! InfluxDBArchiveReader.isCancellation(ex))
+        //                throw ex;
+        //            // Else: Not a real error; return empty iterator
+        //        }
         return result;
     }
 
@@ -202,39 +202,39 @@ public class RawSampleIterator extends AbstractRDBValueIterator
     {
         super.close();
         value = null;
-        if (result_set != null)
-        {
-            try
-            {
-                result_set.close();
-            }
-            catch (Exception ex)
-            {
-                // Ignore
-            }
-            result_set = null;
-        }
-        if (sel_samples != null)
-        {
-            reader.removeFromCancellation(sel_samples);
-            try
-            {
-                sel_samples.close();
-            }
-            catch (Exception ex)
-            {
-                // Ignore
-            }
-            sel_samples = null;
-        }
-        if (reader.getDialect() == Dialect.PostgreSQL) {
-            // Restore default auto-commit on result set close
-            try {
-                reader.getConnection().setAutoCommit(true);
-            } catch (Exception e) {
-                // Ignore
-            }
-        }
+        //        if (result_set != null)
+        //        {
+        //            try
+        //            {
+        //                result_set.close();
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                // Ignore
+        //            }
+        //            result_set = null;
+        //        }
+        //        if (sel_samples != null)
+        //        {
+        //            reader.removeFromCancellation(sel_samples);
+        //            try
+        //            {
+        //                sel_samples.close();
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                // Ignore
+        //            }
+        //            sel_samples = null;
+        //        }
+        //        if (reader.getDialect() == Dialect.PostgreSQL) {
+        //            // Restore default auto-commit on result set close
+        //            try {
+        //                reader.getConnection().setAutoCommit(true);
+        //            } catch (Exception e) {
+        //                // Ignore
+        //            }
+        //        }
     }
 
     public void setConcurrency(boolean concurrency) {

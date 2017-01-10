@@ -7,65 +7,55 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import org.influxdb.InfluxDB;
+//import java.sql.Connection;
+//import java.sql.PreparedStatement;
+//import java.sql.ResultSet;
+//import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.csstudio.archive.rdb.RDBArchivePreferences;
+import org.csstudio.archive.influxdb.InfluxDBRead;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.UnknownChannelException;
 import org.csstudio.archive.reader.ValueIterator;
-import org.csstudio.archive.vtype.TimestampHelper;
-import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
+//import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
 import org.diirt.util.time.TimeDuration;
-import org.diirt.vtype.AlarmSeverity;
 
-/** ArchiveReader for RDB data
- *  @author Kay Kasemir
- *  @author Lana Abadie - PostgreSQL support
- *  @author Laurent Philippe - MySQL support
+/** ArchiveReader for InfluxDB data
+ *  @author Megan Grodowitz
  */
 @SuppressWarnings("nls")
-public class RDBArchiveReader implements ArchiveReader
+public class InfluxDBArchiveReader implements ArchiveReader
 {
-    /** Oracle error code for canceled statements */
-    final private static String ORACLE_CANCELLATION = "ORA-01013"; //$NON-NLS-1$
-
-    /** Oracle error code "error occurred at recursive SQL level ...: */
-    final private static String ORACLE_RECURSIVE_ERROR = "ORA-00604"; //$NON-NLS-1$
-
-    final private boolean use_array_blob;
+    //TODO: cleanup.
+    //final private boolean use_array_blob;
 
     final private String url;
     final private String user;
     final private int password;
     /** Timeout [secs] used for some operations that should be 'fast' */
-    final private int timeout;
+    //final private int timeout;
 
     /** Name of stored procedure or "" */
-    final private String stored_procedure;
-
-    final private ConnectionCache.Entry rdb;
-    final private SQL sql;
-    final private boolean is_oracle;
+    //    final private String stored_procedure;
+    //
+    final private ConnectionCache.Entry influxdb;
+    final private InfluxDBRead influxQuery;
+    //    final private boolean is_oracle;
 
     /** Map of status IDs to Status strings */
-    final private HashMap<Integer, String> stati;
+    // don't need this for influx, just store the status strings as tags
+    //final private HashMap<Integer, String> stati;
 
     /** Map of severity IDs to Severities */
-    final private HashMap<Integer, AlarmSeverity> severities;
+    // don't need this for influx, just store severity strings as tags
+    //final private HashMap<Integer, AlarmSeverity> severities;
 
-    /** List of statements to cancel in cancel() */
-    private ArrayList<Statement> cancellable_statements =
-            new ArrayList<Statement>();
+    //    /** List of statements to cancel in cancel() */
+    //    private ArrayList<Statement> cancellable_statements =
+    //            new ArrayList<Statement>();
 
     private boolean concurrency = false;
 
@@ -77,12 +67,10 @@ public class RDBArchiveReader implements ArchiveReader
      *  @param stored_procedure Stored procedure or "" for client-side optimization
      *  @throws Exception on error
      */
-    public RDBArchiveReader(final String url, final String user,
-            final String password, final String schema,
-            final String stored_procedure)
-                    throws Exception
+    public InfluxDBArchiveReader(final String url)
+            throws Exception
     {
-        this(url, user, password, schema, stored_procedure, RDBArchivePreferences.useArrayBlob());
+        this(url, null, null);
     }
 
     /** Initialize
@@ -94,176 +82,155 @@ public class RDBArchiveReader implements ArchiveReader
      *  @param use_array_blob Use BLOB for array elements?
      *  @throws Exception on error
      */
-    public RDBArchiveReader(final String url, final String user,
-            final String password, final String schema,
-            final String stored_procedure,
-            final boolean use_array_blob)
-                    throws Exception
+    public InfluxDBArchiveReader(final String url, final String user, final String password)
+            throws Exception
     {
         this.url = url;
         this.user = user;
         this.password = (password == null) ? 0 : password.length();
-        this.use_array_blob = use_array_blob;
-        timeout = RDBArchivePreferences.getSQLTimeoutSecs();
-        rdb = ConnectionCache.get(url, user, password);
+        //TODO: Set timeouts? Other optimization?
+        //timeout = RDBArchivePreferences.getSQLTimeoutSecs();
+        influxdb = ConnectionCache.get(url, user, password);
+        influxQuery = new InfluxDBRead("*");
 
-        // Read-only allows MySQL to use load balancing
-        if (!rdb.getConnection().isReadOnly()) {
-            rdb.getConnection().setReadOnly(true);
-        }
-
-        final Dialect dialect = rdb.getDialect();
-        switch (dialect)
-        {
-        case MySQL:
-            is_oracle = false;
-            this.stored_procedure = stored_procedure;
-            break;
-        case PostgreSQL:
-            is_oracle = false;
-            this.stored_procedure = stored_procedure;
-            break;
-        case Oracle:
-            is_oracle = true;
-            this.stored_procedure = stored_procedure;
-            break;
-        default:
-            throw new Exception("Unknown database dialect " + dialect);
-        }
-        sql = new SQL(dialect, schema);
-        stati = getStatusValues();
-        severities = getSeverityValues();
+        //        final Dialect dialect = rdb.getDialect();
+        //        switch (dialect)
+        //        {
+        //        case MySQL:
+        //            is_oracle = false;
+        //            this.stored_procedure = stored_procedure;
+        //            break;
+        //        case PostgreSQL:
+        //            is_oracle = false;
+        //            this.stored_procedure = stored_procedure;
+        //            break;
+        //        case Oracle:
+        //            is_oracle = true;
+        //            this.stored_procedure = stored_procedure;
+        //            break;
+        //        default:
+        //            throw new Exception("Unknown database dialect " + dialect);
+        //        }
+        //        sql = new SQL(dialect, schema);
+        //stati = getStatusValues();
+        //severities = getSeverityValues();
     }
 
-    /** @return <code>true</code> when using Oracle, i.e. no 'nanosec'
-     *          because that is included in the 'smpl_time'
-     */
-    public boolean isOracle()
-    {
-        return is_oracle;
-    }
+    //    /** @return Map of all status ID/Text mappings
+    //     *  @throws Exception on error
+    //     */
+    //    private HashMap<Integer, String> getStatusValues() throws Exception
+    //    {
+    //        final HashMap<Integer, String> stati = new HashMap<Integer, String>();
+    //        try
+    //        (
+    //                final Statement statement = rdb.getConnection().createStatement();
+    //                )
+    //        {
+    //            if (timeout > 0)
+    //                statement.setQueryTimeout(timeout);
+    //            statement.setFetchSize(100);
+    //            final ResultSet result = statement.executeQuery(sql.sel_stati);
+    //            while (result.next())
+    //                stati.put(result.getInt(1), result.getString(2));
+    //            return stati;
+    //        }
+    //    }
 
-    /** @return <code>true</code> if array samples are stored in BLOB */
-    public boolean useArrayBlob()
-    {
-        return use_array_blob;
-    }
-
-    /** @return Map of all status ID/Text mappings
-     *  @throws Exception on error
-     */
-    private HashMap<Integer, String> getStatusValues() throws Exception
-    {
-        final HashMap<Integer, String> stati = new HashMap<Integer, String>();
-        try
-        (
-                final Statement statement = rdb.getConnection().createStatement();
-                )
-        {
-            if (timeout > 0)
-                statement.setQueryTimeout(timeout);
-            statement.setFetchSize(100);
-            final ResultSet result = statement.executeQuery(sql.sel_stati);
-            while (result.next())
-                stati.put(result.getInt(1), result.getString(2));
-            return stati;
-        }
-    }
-
-    /** @return Map of all severity ID/AlarmSeverity mappings
-     *  @throws Exception on error
-     */
-    private HashMap<Integer, AlarmSeverity> getSeverityValues() throws Exception
-    {
-        final HashMap<Integer, AlarmSeverity> severities = new HashMap<Integer, AlarmSeverity>();
-        try
-        (
-                final Statement statement = rdb.getConnection().createStatement();
-                )
-        {
-            if (timeout > 0)
-                statement.setQueryTimeout(timeout);
-            statement.setFetchSize(100);
-            final ResultSet result = statement.executeQuery(sql.sel_severities);
-            while (result.next())
-            {
-                final int id = result.getInt(1);
-                final String text = result.getString(2);
-                AlarmSeverity severity = null;
-                for (AlarmSeverity s : AlarmSeverity.values())
-                {
-                    if (text.startsWith(s.name()))
-                    {
-                        severity = s;
-                        break;
-                    }
-                    if    ("OK".equalsIgnoreCase(text) || "".equalsIgnoreCase(text))
-                    {
-                        severity = AlarmSeverity.NONE;
-                        break;
-                    }
-                }
-                if (severity == null)
-                {
-                    Activator.getLogger().log(Level.FINE,
-                            "Undefined severity level {0}", text);
-                    severities.put(id, AlarmSeverity.UNDEFINED);
-                }
-                else
-                    severities.put(id, severity);
-            }
-            return severities;
-        }
-    }
+    //    /** @return Map of all severity ID/AlarmSeverity mappings
+    //     *  @throws Exception on error
+    //     */
+    //    private HashMap<Integer, AlarmSeverity> getSeverityValues() throws Exception
+    //    {
+    //        final HashMap<Integer, AlarmSeverity> severities = new HashMap<Integer, AlarmSeverity>();
+    //        try
+    //        (
+    //                final Statement statement = rdb.getConnection().createStatement();
+    //                )
+    //        {
+    //            if (timeout > 0)
+    //                statement.setQueryTimeout(timeout);
+    //            statement.setFetchSize(100);
+    //            final ResultSet result = statement.executeQuery(sql.sel_severities);
+    //            while (result.next())
+    //            {
+    //                final int id = result.getInt(1);
+    //                final String text = result.getString(2);
+    //                AlarmSeverity severity = null;
+    //                for (AlarmSeverity s : AlarmSeverity.values())
+    //                {
+    //                    if (text.startsWith(s.name()))
+    //                    {
+    //                        severity = s;
+    //                        break;
+    //                    }
+    //                    if    ("OK".equalsIgnoreCase(text) || "".equalsIgnoreCase(text))
+    //                    {
+    //                        severity = AlarmSeverity.NONE;
+    //                        break;
+    //                    }
+    //                }
+    //                if (severity == null)
+    //                {
+    //                    Activator.getLogger().log(Level.FINE,
+    //                            "Undefined severity level {0}", text);
+    //                    severities.put(id, AlarmSeverity.UNDEFINED);
+    //                }
+    //                else
+    //                    severities.put(id, severity);
+    //            }
+    //            return severities;
+    //        }
+    //    }
 
     /** @return RDB connection
      *  @throws Exception on error
      */
-    Connection getConnection() throws Exception
+    InfluxDB getConnection() throws Exception
     {
-        return rdb.getConnection();
+        return influxdb.getConnection();
     }
 
-    Dialect getDialect()
+    //    Dialect getDialect()
+    //    {
+    //        return rdb.getDialect();
+    //    }
+
+    /** @return Query statements */
+    InfluxDBRead getQuery()
     {
-        return rdb.getDialect();
+        return influxQuery;
     }
 
-    /** @return SQL statements */
-    SQL getSQL()
-    {
-        return sql;
-    }
-
-    /** @param status_id Numeric status ID
-     *  @return Status string for ID
-     */
-    String getStatus(int status_id)
-    {
-        final String status = stati.get(status_id);
-        if (status == null)
-            return "<" + status_id + ">";
-        return status;
-    }
-
-    /** @param severity_id Numeric severity ID
-     *  @return ISeverity for ID
-     */
-    AlarmSeverity getSeverity(int severity_id)
-    {
-        final AlarmSeverity severity = severities.get(severity_id);
-        if (severity != null)
-            return severity;
-        Activator.getLogger().log(Level.WARNING, "Undefined alarm severity ID {0}", severity_id);
-        severities.put(severity_id, AlarmSeverity.UNDEFINED);
-        return AlarmSeverity.UNDEFINED;
-    }
+    //    /** @param status_id Numeric status ID
+    //     *  @return Status string for ID
+    //     */
+    //    String getStatus(int status_id)
+    //    {
+    //        final String status = stati.get(status_id);
+    //        if (status == null)
+    //            return "<" + status_id + ">";
+    //        return status;
+    //    }
+    //
+    //    /** @param severity_id Numeric severity ID
+    //     *  @return ISeverity for ID
+    //     */
+    //    AlarmSeverity getSeverity(int severity_id)
+    //    {
+    //        final AlarmSeverity severity = severities.get(severity_id);
+    //        if (severity != null)
+    //            return severity;
+    //        Activator.getLogger().log(Level.WARNING, "Undefined alarm severity ID {0}", severity_id);
+    //        severities.put(severity_id, AlarmSeverity.UNDEFINED);
+    //        return AlarmSeverity.UNDEFINED;
+    //    }
 
     /** {@inheritDoc} */
     @Override
     public String getServerName()
     {
-        return "RDB";
+        return "InfluxDB";
     }
 
     /** {@inheritDoc} */
@@ -277,7 +244,7 @@ public class RDBArchiveReader implements ArchiveReader
     @Override
     public String getDescription()
     {
-        return "RDB Archive V" + getVersion() + " (" + rdb.getDialect() + ")\n" +
+        return "InfluxDB Archive V" + getVersion() + "\n" +
                 "User: " + user + "\n" +
                 "Password: " + password + " characters";
     }
@@ -286,7 +253,7 @@ public class RDBArchiveReader implements ArchiveReader
     @Override
     public int getVersion()
     {
-        return 2;
+        return 1;
     }
 
     /** {@inheritDoc} */
@@ -295,7 +262,7 @@ public class RDBArchiveReader implements ArchiveReader
     {
         return new ArchiveInfo[]
                 {
-                        new ArchiveInfo("rdb", rdb.getDialect().toString(), 1)
+                        new ArchiveInfo("influxdb", "", 1)
                 };
     }
 
@@ -309,14 +276,14 @@ public class RDBArchiveReader implements ArchiveReader
         sql_pattern = sql_pattern.replace('?', '_');
         // Glob '*' -> SQL '%'
         sql_pattern = sql_pattern.replace('*', '%');
-        return perform_search(sql_pattern, sql.channel_sel_by_like);
+        return perform_search(sql_pattern, influxQuery.channel_sel_by_like);
     }
 
     /** {@inheritDoc} */
     @Override
     public String[] getNamesByRegExp(final int key, final String reg_exp) throws Exception
     {
-        return perform_search(reg_exp, sql.channel_sel_by_reg_exp);
+        return perform_search(reg_exp, influxQuery.channel_sel_by_reg_exp);
     }
 
     /** Perform channel search by name pattern
@@ -328,29 +295,29 @@ public class RDBArchiveReader implements ArchiveReader
     private String[] perform_search(final String pattern, final String sql_query) throws Exception
     {
         final ArrayList<String> names = new ArrayList<String>();
-        final PreparedStatement statement = rdb.getConnection().prepareStatement(sql_query);
-        addForCancellation(statement);
-        try
-        {
-            statement.setString(1, pattern);
-            final ResultSet result = statement.executeQuery();
-            while (result.next())
-                names.add(result.getString(1));
-        }
-        catch (Exception ex)
-        {
-            if (ex.getMessage().startsWith("ORA-01013") || ex.getMessage().startsWith("ERROR: canceling statement due to user request"))
-            {
-                // Ignore Oracle/PostgreSQL error: user requested cancel of current operation
-            }
-            else
-                throw ex;
-        }
-        finally
-        {
-            removeFromCancellation(statement);
-            statement.close();
-        }
+        //        final PreparedStatement statement = rdb.getConnection().prepareStatement(sql_query);
+        //        addForCancellation(statement);
+        //        try
+        //        {
+        //            statement.setString(1, pattern);
+        //            final ResultSet result = statement.executeQuery();
+        //            while (result.next())
+        //                names.add(result.getString(1));
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            if (ex.getMessage().startsWith("ORA-01013") || ex.getMessage().startsWith("ERROR: canceling statement due to user request"))
+        //            {
+        //                // Ignore Oracle/PostgreSQL error: user requested cancel of current operation
+        //            }
+        //            else
+        //                throw ex;
+        //        }
+        //        finally
+        //        {
+        //            removeFromCancellation(statement);
+        //            statement.close();
+        //        }
         return names.toArray(new String[names.size()]);
     }
 
@@ -386,32 +353,32 @@ public class RDBArchiveReader implements ArchiveReader
             throw new Exception("Count must be > 1");
         final int channel_id = getChannelID(name);
 
-        // Use stored procedure in RDB server?
-        if (stored_procedure.length() > 0)
-            return new StoredProcedureValueIterator(this, stored_procedure, channel_id, start, end, count);
-
-        // Else: Determine how many samples there are
-        final int counted;
-        try
-        (
-                final PreparedStatement count_samples = rdb.getConnection().prepareStatement(
-                        sql.sample_count_by_id_start_end);
-                )
-        {
-            count_samples.setInt(1, channel_id);
-            count_samples.setTimestamp(2, TimestampHelper.toSQLTimestamp(start));
-            count_samples.setTimestamp(3, TimestampHelper.toSQLTimestamp(end));
-            final ResultSet result = count_samples.executeQuery();
-            if (! result.next())
-                throw new Exception("Cannot count samples");
-            counted = result.getInt(1);
-        }
+        //        // Use stored procedure in RDB server?
+        //        if (stored_procedure.length() > 0)
+        //            return new StoredProcedureValueIterator(this, stored_procedure, channel_id, start, end, count);
+        //
+        //        // Else: Determine how many samples there are
+        //        final int counted;
+        //        try
+        //        (
+        //                final PreparedStatement count_samples = rdb.getConnection().prepareStatement(
+        //                        influxQuery.sample_count_by_id_start_end);
+        //                )
+        //        {
+        //            count_samples.setInt(1, channel_id);
+        //            count_samples.setTimestamp(2, TimestampHelper.toSQLTimestamp(start));
+        //            count_samples.setTimestamp(3, TimestampHelper.toSQLTimestamp(end));
+        //            final ResultSet result = count_samples.executeQuery();
+        //            if (! result.next())
+        //                throw new Exception("Cannot count samples");
+        //            counted = result.getInt(1);
+        //        }
         // Fetch raw data and perform averaging
         final ValueIterator raw_data = getRawValues(channel_id, start, end);
 
-        // If there weren't that many, that's it
-        if (counted < count)
-            return raw_data;
+        //        // If there weren't that many, that's it
+        //        if (counted < count)
+        //            return raw_data;
 
         // Else: Perform averaging to reduce sample count
         final double seconds = TimeDuration.toSecondsDouble(Duration.between(start, end)) / count;
@@ -426,45 +393,46 @@ public class RDBArchiveReader implements ArchiveReader
     // Allow access from 'package' for tests
     int getChannelID(final String name) throws UnknownChannelException, Exception
     {
-        try
-        (
-                final PreparedStatement statement =
-                rdb.getConnection().prepareStatement(sql.channel_sel_by_name);
-                )
-        {
-            if (timeout > 0)
-                statement.setQueryTimeout(timeout);
-            statement.setString(1, name);
-            final ResultSet result = statement.executeQuery();
-            if (!result.next())
-                throw new UnknownChannelException(name);
-            return result.getInt(1);
-        }
+        //        try
+        //        (
+        //                final PreparedStatement statement =
+        //                rdb.getConnection().prepareStatement(influxQuery.channel_sel_by_name);
+        //                )
+        //        {
+        //            if (timeout > 0)
+        //                statement.setQueryTimeout(timeout);
+        //            statement.setString(1, name);
+        //            final ResultSet result = statement.executeQuery();
+        //            if (!result.next())
+        //                throw new UnknownChannelException(name);
+        //            return result.getInt(1);
+        //        }
+        return 1;
     }
 
-    /** Add a statement to the list of statements-to-cancel in cancel()
-     *  @param statement Statement to cancel
-     *  @see #cancel()
-     */
-    void addForCancellation(final Statement statement)
-    {
-        synchronized (cancellable_statements)
-        {
-            cancellable_statements.add(statement);
-        }
-    }
-
-    /** Remove a statement to the list of statements-to-cancel in cancel()
-     *  @param statement Statement that should no longer be cancelled
-     *  @see #cancel()
-     */
-    void removeFromCancellation(final Statement statement)
-    {
-        synchronized (cancellable_statements)
-        {
-            cancellable_statements.remove(statement);
-        }
-    }
+    //    /** Add a statement to the list of statements-to-cancel in cancel()
+    //     *  @param statement Statement to cancel
+    //     *  @see #cancel()
+    //     */
+    //    void addForCancellation(final Statement statement)
+    //    {
+    //        synchronized (cancellable_statements)
+    //        {
+    //            cancellable_statements.add(statement);
+    //        }
+    //    }
+    //
+    //    /** Remove a statement to the list of statements-to-cancel in cancel()
+    //     *  @param statement Statement that should no longer be cancelled
+    //     *  @see #cancel()
+    //     */
+    //    void removeFromCancellation(final Statement statement)
+    //    {
+    //        synchronized (cancellable_statements)
+    //        {
+    //            cancellable_statements.remove(statement);
+    //        }
+    //    }
 
     /** Check if an exception indicates Oracle operation was canceled,
      *  i.e. this program requested the operation to abort
@@ -473,17 +441,17 @@ public class RDBArchiveReader implements ArchiveReader
      */
     public static boolean isCancellation(final Throwable ex)
     {
-        final String message = ex.getMessage();
-        if (message == null)
-            return false;
-        if (message.startsWith(ORACLE_CANCELLATION))
-            return true;
-        if (message.startsWith(ORACLE_RECURSIVE_ERROR))
-        {
-            final Throwable cause = ex.getCause();
-            if (cause != null)
-                return isCancellation(cause);
-        }
+        //        final String message = ex.getMessage();
+        //        if (message == null)
+        //            return false;
+        //        if (message.startsWith(ORACLE_CANCELLATION))
+        //            return true;
+        //        if (message.startsWith(ORACLE_RECURSIVE_ERROR))
+        //        {
+        //            final Throwable cause = ex.getCause();
+        //            if (cause != null)
+        //                return isCancellation(cause);
+        //        }
         return false;
     }
 
@@ -493,25 +461,25 @@ public class RDBArchiveReader implements ArchiveReader
     @Override
     public void cancel()
     {
-        synchronized (cancellable_statements)
-        {
-            for (Statement statement : cancellable_statements)
-            {
-                try
-                {
-                    // Note that
-                    //    statement.getConnection().close()
-                    // does NOT stop an ongoing Oracle query!
-                    // Only this seems to do it:
-                    statement.cancel();
-                }
-                catch (Exception ex)
-                {
-                    Logger.getLogger(Activator.ID).log(Level.WARNING,
-                            "Attempt to cancel statement", ex); //$NON-NLS-1$
-                }
-            }
-        }
+        //        synchronized (cancellable_statements)
+        //        {
+        //            for (Statement statement : cancellable_statements)
+        //            {
+        //                try
+        //                {
+        //                    // Note that
+        //                    //    statement.getConnection().close()
+        //                    // does NOT stop an ongoing Oracle query!
+        //                    // Only this seems to do it:
+        //                    statement.cancel();
+        //                }
+        //                catch (Exception ex)
+        //                {
+        //                    Logger.getLogger(Activator.ID).log(Level.WARNING,
+        //                            "Attempt to cancel statement", ex); //$NON-NLS-1$
+        //                }
+        //            }
+        //        }
     }
 
     /** {@inheritDoc} */
@@ -519,21 +487,21 @@ public class RDBArchiveReader implements ArchiveReader
     public void close()
     {
         cancel();
-        try
-        {
-            Connection connection = rdb.getConnection();
-            if (connection != null && connection.getAutoCommit() == false)
-            {
-                connection.rollback();
-                connection.setAutoCommit(true);
-            }
-        }
-        catch (Exception ex)
-        {
-            Activator.getLogger().log(Level.WARNING,
-                    "Attempt to cleanup connection failed with Exception", ex); //$NON-NLS-1$
-        }
-        ConnectionCache.release(rdb);
+        //        try
+        //        {
+        //            Connection connection = rdb.getConnection();
+        //            if (connection != null && connection.getAutoCommit() == false)
+        //            {
+        //                connection.rollback();
+        //                connection.setAutoCommit(true);
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Activator.getLogger().log(Level.WARNING,
+        //                    "Attempt to cleanup connection failed with Exception", ex); //$NON-NLS-1$
+        //        }
+        ConnectionCache.release(influxdb);
     }
 
     @Override
