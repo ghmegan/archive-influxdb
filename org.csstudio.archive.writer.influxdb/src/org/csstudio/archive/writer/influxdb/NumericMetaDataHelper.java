@@ -7,14 +7,13 @@
  ******************************************************************************/
 package org.csstudio.archive.writer.influxdb;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.text.NumberFormat;
-
-import org.csstudio.platform.utility.influxdb.RDBUtil;
+import org.csstudio.archive.influxdb.InfluxDBWrite;
+//import org.csstudio.platform.utility.influxdb.RDBUtil;
 import org.diirt.vtype.Display;
+import org.influxdb.InfluxDB;
 
 /** Helper for handling the numeric meta data table.
  *  @author Kay Kasemir
@@ -32,22 +31,22 @@ public class NumericMetaDataHelper
      *  @param channel Channel
      *  @throws Exception on error
      */
-    public static void delete(final RDBUtil influxdb, final SQL sql,
-            final RDBWriteChannel channel) throws Exception
+    public static void delete(final InfluxDB influxdb, final InfluxDBWrite sql,
+            final InfluxDBWriteChannel channel) throws Exception
     {
-        // Delete any existing entries
-        final Connection connection = influxdb.getConnection();
-        final PreparedStatement del = connection.prepareStatement(
-                sql.numeric_meta_delete_by_channel);
-        try
-        {
-            del.setInt(1, channel.getId());
-            del.executeUpdate();
-        }
-        finally
-        {
-            del.close();
-        }
+        //        // Delete any existing entries
+        //        final Connection connection = influxdb.getConnection();
+        //        final PreparedStatement del = connection.prepareStatement(
+        //                sql.numeric_meta_delete_by_channel);
+        //        try
+        //        {
+        //            del.setInt(1, channel.getId());
+        //            del.executeUpdate();
+        //        }
+        //        finally
+        //        {
+        //            del.close();
+        //        }
     }
 
     /** Insert meta data for channel into archive
@@ -57,36 +56,36 @@ public class NumericMetaDataHelper
      *  @param meta Meta data
      *  @throws Exception on error
      */
-    public static void insert(final RDBUtil influxdb, final SQL sql,
-            final RDBWriteChannel channel, final Display meta) throws Exception
+    public static void insert(final InfluxDB influxdb, final InfluxDBWrite sql,
+            final InfluxDBWriteChannel channel, final Display meta) throws Exception
     {
-        final Connection connection = influxdb.getConnection();
-        final PreparedStatement insert = connection.prepareStatement(sql.numeric_meta_insert);
-        try
-        {
-            insert.setInt(1, channel.getId());
-            setDoubleOrNull(insert, 2, meta.getLowerDisplayLimit());
-            setDoubleOrNull(insert, 3, meta.getUpperDisplayLimit());
-            setDoubleOrNull(insert, 4, meta.getLowerWarningLimit());
-            setDoubleOrNull(insert, 5, meta.getUpperWarningLimit());
-            setDoubleOrNull(insert, 6, meta.getLowerAlarmLimit());
-            setDoubleOrNull(insert, 7, meta.getUpperAlarmLimit());
-            final NumberFormat format = meta.getFormat();
-            if (format == null)
-                insert.setInt(8, 0);
-            else
-                insert.setInt(8, format.getMinimumFractionDigits());
-            // Oracle schema has NOT NULL units...
-            String units = meta.getUnits();
-            if (units == null  ||  units.length() < 1)
-                units = " "; //$NON-NLS-1$
-            insert.setString(9, units);
-            insert.executeUpdate();
-        }
-        finally
-        {
-            insert.close();
-        }
+        //        final Connection connection = influxdb.getConnection();
+        //        final PreparedStatement insert = connection.prepareStatement(sql.numeric_meta_insert);
+        //        try
+        //        {
+        //            insert.setInt(1, channel.getId());
+        //            setDoubleOrNull(insert, 2, meta.getLowerDisplayLimit());
+        //            setDoubleOrNull(insert, 3, meta.getUpperDisplayLimit());
+        //            setDoubleOrNull(insert, 4, meta.getLowerWarningLimit());
+        //            setDoubleOrNull(insert, 5, meta.getUpperWarningLimit());
+        //            setDoubleOrNull(insert, 6, meta.getLowerAlarmLimit());
+        //            setDoubleOrNull(insert, 7, meta.getUpperAlarmLimit());
+        //            final NumberFormat format = meta.getFormat();
+        //            if (format == null)
+        //                insert.setInt(8, 0);
+        //            else
+        //                insert.setInt(8, format.getMinimumFractionDigits());
+        //            // Oracle schema has NOT NULL units...
+        //            String units = meta.getUnits();
+        //            if (units == null  ||  units.length() < 1)
+        //                units = " "; //$NON-NLS-1$
+        //            insert.setString(9, units);
+        //            insert.executeUpdate();
+        //        }
+        //        finally
+        //        {
+        //            insert.close();
+        //        }
     }
 
     /** Some dialects like MySQL cannot handle NaN or +-Inf.

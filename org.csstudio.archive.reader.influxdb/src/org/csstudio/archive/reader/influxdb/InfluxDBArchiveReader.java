@@ -183,11 +183,12 @@ public class InfluxDBArchiveReader implements ArchiveReader
     //        }
     //    }
 
-    /** @return RDB connection
+    /** @return InfluxDB connection
      *  @throws Exception on error
      */
     InfluxDB getConnection() throws Exception
     {
+        //TODO: No exception is thrown for closed connection. Connection is only checked on initial connect.
         return influxdb.getConnection();
     }
 

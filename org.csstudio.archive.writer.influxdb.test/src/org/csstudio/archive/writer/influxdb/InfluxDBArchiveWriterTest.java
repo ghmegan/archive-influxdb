@@ -33,16 +33,16 @@ import org.junit.Test;
 /** JUnit test of the archive writer
  *
  *  <p>Main purpose of these tests is to run in debugger, step-by-step,
- *  so verify if correct RDB entries are made.
- *  The sources don't include anything to check the raw RDB data.
+ *  so verify if correct DB entries are made.
+ *  The sources don't include anything to check the raw DB data.
  *
- *  @author Kay Kasemir
+ *  @author Megan Grodowitz
  */
 @SuppressWarnings("nls")
-public class RDBArchiveWriterTest
+public class InfluxDBArchiveWriterTest
 {
     final Display display = ValueFactory.newDisplay(0.0, 1.0, 2.0, "a.u.", NumberFormats.format(2), 8.0, 9.0, 10.0, 0.0, 10.0);
-    private RDBArchiveWriter writer = null;
+    private InfluxDBArchiveWriter writer = null;
     private String name, array_name;
 
     @Before
@@ -52,7 +52,7 @@ public class RDBArchiveWriterTest
         final String url = settings.getString("archive_influxdb_url");
         final String user = settings.getString("archive_influxdb_user");
         final String password = settings.getString("archive_influxdb_password");
-        final String schema = settings.getString("archive_influxdb_schema");
+
         name = settings.getString("archive_channel");
         array_name = settings.getString("archive_array_channel");
         if (url == null  ||  user == null  ||  password == null  ||  name == null)
@@ -60,12 +60,8 @@ public class RDBArchiveWriterTest
             System.out.println("Skipping test, no archive_influxdb_url, user, password");
             return;
         }
-        final boolean use_blob = Boolean.parseBoolean(settings.getString("archive_use_blob"));
-        if (use_blob)
-            System.out.println("Running write test with BLOB");
-        else
-            System.out.println("Running write test with old array_val table");
-        writer = new RDBArchiveWriter(url, user, password, schema, use_blob);
+
+        writer = new InfluxDBArchiveWriter(url, user, password);
     }
 
     @After
@@ -165,7 +161,7 @@ public class RDBArchiveWriterTest
      * Without rewriteBatchedStatements=true:  ~7000 samples/sec
      * With rewriteBatchedStatements=true   : ~21000 samples/sec
      */
-     // @Ignore
+    // @Ignore
     @Test
     public void testWriteSpeedDouble() throws Exception
     {
@@ -189,6 +185,6 @@ public class RDBArchiveWriterTest
         writer.flush();
 
         System.out.println("Wrote " + count + " samples, i.e. "
-                         + ((double)count / TEST_DURATION_SECS) + " samples/sec.");
+                + ((double)count / TEST_DURATION_SECS) + " samples/sec.");
     }
 }

@@ -24,7 +24,7 @@ import org.influxdb.dto.QueryResult;
  *  @author Lana Abadie (PostgreSQL)
  */
 @SuppressWarnings("nls")
-abstract public class AbstractRDBValueIterator  implements ValueIterator
+abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
 {
     final protected InfluxDBArchiveReader reader;
     final protected int channel_id;
@@ -55,7 +55,7 @@ abstract public class AbstractRDBValueIterator  implements ValueIterator
      *  @param channel_id ID of channel
      *  @throws Exception on error
      */
-    AbstractRDBValueIterator(final InfluxDBArchiveReader reader,
+    AbstractInfluxDBValueIterator(final InfluxDBArchiveReader reader,
             final int channel_id) throws Exception
     {
         this.reader = reader;

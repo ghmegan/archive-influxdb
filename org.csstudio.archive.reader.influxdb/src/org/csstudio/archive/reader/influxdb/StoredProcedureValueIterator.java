@@ -19,7 +19,7 @@ import org.diirt.vtype.VType;
  *  @author Laurent Philippe - MySQL support
  */
 @SuppressWarnings("nls")
-public class StoredProcedureValueIterator extends AbstractRDBValueIterator
+public class StoredProcedureValueIterator extends AbstractInfluxDBValueIterator
 {
     final private String stored_procedure;
 

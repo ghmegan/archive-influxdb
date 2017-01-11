@@ -7,22 +7,22 @@
  ******************************************************************************/
 package org.csstudio.archive.writer.influxdb;
 
-import org.csstudio.platform.utility.influxdb.StringID;
+//import org.csstudio.platform.utility.influxdb.StringID;
 
 /** Status ID
  *  @author Kay Kasemir
  */
-public class Status extends StringID
+public class Status //extends StringID
 {
-    public Status(int id, String name)
-    {
-        super(id, name);
-    }
-
-    @Override
-    @SuppressWarnings("nls")
-    final public String toString()
-    {
-        return String.format("Status '%s' (%d)", getName(), getId());
-    }
+    //    public Status(int id, String name)
+    //    {
+    //        super(id, name);
+    //    }
+    //
+    //    @Override
+    //    @SuppressWarnings("nls")
+    //    final public String toString()
+    //    {
+    //        return String.format("Status '%s' (%d)", getName(), getId());
+    //    }
 }

@@ -19,7 +19,7 @@ import org.influxdb.dto.QueryResult;
  *  @author Kay Kasemir
  *  @author Lana Abadie (PostgreSQL)
  */
-public class RawSampleIterator extends AbstractRDBValueIterator
+public class RawSampleIterator extends AbstractInfluxDBValueIterator
 {
     /** SELECT ... for the start .. end samples. */
     //private PreparedStatement sel_samples = null;

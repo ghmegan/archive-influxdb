@@ -16,7 +16,7 @@ import org.csstudio.archive.reader.ArchiveReaderFactory;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class RDBArchiveReaderFactory implements ArchiveReaderFactory
+public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
 {
     /** {@inheritDoc} */
     @Override

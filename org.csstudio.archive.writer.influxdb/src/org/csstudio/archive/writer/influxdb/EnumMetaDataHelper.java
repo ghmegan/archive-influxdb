@@ -7,12 +7,11 @@
  ******************************************************************************/
 package org.csstudio.archive.writer.influxdb;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.util.List;
-import java.util.logging.Level;
+import org.csstudio.archive.influxdb.InfluxDBWrite;
+import org.influxdb.InfluxDB;
 
-import org.csstudio.platform.utility.influxdb.RDBUtil;
+//import org.csstudio.platform.utility.influxdb.RDBUtil;
 
 /** Enumeration Strings for a channel.
  *  <p>
@@ -35,21 +34,21 @@ public class EnumMetaDataHelper
      *  @param channel Channel
      *  @throws Exception on error
      */
-    public static void delete(final RDBUtil influxdb, final SQL sql,
-            final RDBWriteChannel channel) throws Exception
+    public static void delete(final InfluxDB influxdb, final InfluxDBWrite sql,
+            final InfluxDBWriteChannel channel) throws Exception
     {
-        // Delete any existing entries
-        final Connection connection = influxdb.getConnection();
-        final PreparedStatement del = connection.prepareStatement(sql.enum_delete_by_channel);
-        try
-        {
-            del.setInt(1, channel.getId());
-            del.executeUpdate();
-        }
-        finally
-        {
-            del.close();
-        }
+        //        // Delete any existing entries
+        //        final Connection connection = influxdb.getConnection();
+        //        final PreparedStatement del = connection.prepareStatement(sql.enum_delete_by_channel);
+        //        try
+        //        {
+        //            del.setInt(1, channel.getId());
+        //            del.executeUpdate();
+        //        }
+        //        finally
+        //        {
+        //            del.close();
+        //        }
     }
 
     /** Insert meta data for channel into archive
@@ -60,35 +59,35 @@ public class EnumMetaDataHelper
      *  @throws Exception on error
      */
     @SuppressWarnings("nls")
-    public static void insert(final RDBUtil influxdb, final SQL sql, final RDBWriteChannel channel,
+    public static void insert(final InfluxDB influxdb, final InfluxDBWrite sql, final InfluxDBWriteChannel channel,
             final List<String> states) throws Exception
     {
-        final Connection connection = influxdb.getConnection();
-        // Define the new ones
-        final PreparedStatement insert = connection.prepareStatement(sql.enum_insert_channel_num_val);
-        try
-        {
-            for (int i=0; i<states.size(); ++i)
-            {
-                insert.setInt(1, channel.getId());
-                insert.setInt(2, i);
-                // Oracle doesn't allow empty==null state strings.
-                String state = states.get(i);
-                if (state == null  ||  state.length() < 1)
-                {   // Patch as "<#>"
-                    state = "<" + i + ">";
-                    Activator.getLogger().log(Level.WARNING,
-                        "Channel {0} has undefined state {1}",
-                        new Object[] { channel.getName(), state });
-                }
-                insert.setString(3, state);
-                insert.addBatch();
-            }
-            insert.executeBatch();
-        }
-        finally
-        {
-            insert.close();
-        }
+        //        final Connection connection = influxdb.getConnection();
+        //        // Define the new ones
+        //        final PreparedStatement insert = connection.prepareStatement(sql.enum_insert_channel_num_val);
+        //        try
+        //        {
+        //            for (int i=0; i<states.size(); ++i)
+        //            {
+        //                insert.setInt(1, channel.getId());
+        //                insert.setInt(2, i);
+        //                // Oracle doesn't allow empty==null state strings.
+        //                String state = states.get(i);
+        //                if (state == null  ||  state.length() < 1)
+        //                {   // Patch as "<#>"
+        //                    state = "<" + i + ">";
+        //                    Activator.getLogger().log(Level.WARNING,
+        //                            "Channel {0} has undefined state {1}",
+        //                            new Object[] { channel.getName(), state });
+        //                }
+        //                insert.setString(3, state);
+        //                insert.addBatch();
+        //            }
+        //            insert.executeBatch();
+        //        }
+        //        finally
+        //        {
+        //            insert.close();
+        //        }
     }
 }

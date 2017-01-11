@@ -14,8 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.influxdb.InfluxDB;
-import org.influxdb.InfluxDBFactory;
 
 /** InfluxDB Connection Cache
  *
@@ -23,7 +23,7 @@ import org.influxdb.InfluxDBFactory;
  */
 public class ConnectionCache
 {
-    private static final Logger logger = Logger.getLogger(ConnectionCache.class.getName());
+    private static final Logger logger = Activator.getLogger();
 
     /** Connection identifier */
     private static class ID
@@ -111,27 +111,8 @@ public class ConnectionCache
             Entry entry = find(id);
             if (entry == null)
             {
-                logger.log(Level.FINE, "Connecting to {0}", url);
-                InfluxDB influxdb;
-                if (user == null || password == null)
-                {
-                    influxdb = InfluxDBFactory.connect(url);
-                }
-                else {
-                    influxdb = InfluxDBFactory.connect(url, user, password);
-                }
-
-                try
-                {
-                    // Have to do something like this because connect fails silently.
-                    influxdb.version();
-                }
-                catch (Exception e)
-                {
-                    throw new Exception("Failed to connect to InfluxDB as user " + user + " at " + url, e);
-                }
-
-                entry = new Entry(id, influxdb);
+                logger.log(Level.FINE, "Creating Cached Connection to {0}", url);
+                entry = new Entry(id, InfluxDBUtil.connect(url, user, password));
                 // TODO: Can we set read only mode for this connection? Do we need to?
                 //entry.getConnection().setReadOnly(true);
             }

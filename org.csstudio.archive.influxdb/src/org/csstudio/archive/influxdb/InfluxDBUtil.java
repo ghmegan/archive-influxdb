@@ -5,7 +5,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 
+import org.influxdb.InfluxDB;
+import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Result;
 import org.influxdb.dto.QueryResult.Series;
@@ -14,6 +17,30 @@ import org.apache.commons.lang3.StringUtils;
 
 public class InfluxDBUtil
 {
+    public static InfluxDB connect(final String url, final String user, final String password) throws Exception
+    {
+        Activator.getLogger().log(Level.FINE, "Connecting to {0}", url);
+        InfluxDB influxdb;
+        if (user == null || password == null)
+        {
+            influxdb = InfluxDBFactory.connect(url);
+        }
+        else {
+            influxdb = InfluxDBFactory.connect(url, user, password);
+        }
+
+        try
+        {
+            // Have to do something like this because connect fails silently.
+            influxdb.version();
+        }
+        catch (Exception e)
+        {
+            throw new Exception("Failed to connect to InfluxDB as user " + user + " at " + url, e);
+        }
+        return influxdb;
+    }
+
     public static byte[] toByteArray(double value) {
         byte[] bytes = new byte[8];
         ByteBuffer.wrap(bytes).putDouble(value);

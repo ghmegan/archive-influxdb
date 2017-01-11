@@ -10,7 +10,8 @@ package org.csstudio.archive.writer.influxdb;
 import java.util.logging.Logger;
 
 /** Not really an Activator, just holds related info and could turn into activator
- *  @author Kay Kasemir
+ *  @author Megan Grodowitz
+ *
  */
 @SuppressWarnings("nls")
 public class Activator

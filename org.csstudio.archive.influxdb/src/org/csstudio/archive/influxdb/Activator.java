@@ -7,6 +7,8 @@
  ******************************************************************************/
 package org.csstudio.archive.influxdb;
 
+import java.util.logging.Logger;
+
 /** (Not really a) Plugin Activator
  *  @author Megan Grodowitz
  */
@@ -14,4 +16,10 @@ public class Activator
 {
     /** Plugin ID defined in MANIFEST.MF */
     final public static String ID = "org.csstudio.archive.influxdb"; //$NON-NLS-1$
+
+    /** @return Logger for plugin ID */
+    public static Logger getLogger()
+    {
+        return Logger.getLogger(Activator.ID);
+    }
 }
