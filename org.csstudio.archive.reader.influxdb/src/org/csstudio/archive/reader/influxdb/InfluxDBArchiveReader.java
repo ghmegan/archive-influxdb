@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import org.csstudio.archive.influxdb.InfluxDBRead;
+import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.UnknownChannelException;
@@ -190,6 +191,11 @@ public class InfluxDBArchiveReader implements ArchiveReader
     {
         //TODO: No exception is thrown for closed connection. Connection is only checked on initial connect.
         return influxdb.getConnection();
+    }
+
+    public ConnectionInfo getConnectionInfo() throws Exception
+    {
+        return new ConnectionInfo(influxdb.getConnection());
     }
 
     //    Dialect getDialect()

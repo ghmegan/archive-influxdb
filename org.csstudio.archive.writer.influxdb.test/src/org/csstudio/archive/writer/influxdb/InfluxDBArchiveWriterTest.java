@@ -15,7 +15,6 @@ import static org.junit.Assert.assertThat;
 import java.time.Instant;
 import java.util.Arrays;
 
-import org.csstudio.apputil.test.TestProperties;
 import org.csstudio.archive.vtype.ArchiveVEnum;
 import org.csstudio.archive.vtype.ArchiveVNumber;
 import org.csstudio.archive.vtype.ArchiveVNumberArray;
@@ -29,6 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 //import org.junit.Ignore;
+import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 
 /** JUnit test of the archive writer
  *
@@ -43,25 +43,48 @@ public class InfluxDBArchiveWriterTest
 {
     final Display display = ValueFactory.newDisplay(0.0, 1.0, 2.0, "a.u.", NumberFormats.format(2), 8.0, 9.0, 10.0, 0.0, 10.0);
     private InfluxDBArchiveWriter writer = null;
-    private String name, array_name;
+    private String channel_name, array_channel_name;
 
     @Before
     public void connect() throws Exception
     {
-        final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_influxdb_url");
-        final String user = settings.getString("archive_influxdb_user");
-        final String password = settings.getString("archive_influxdb_password");
+        //        final TestProperties settings = new TestProperties();
+        //        final String url = settings.getString("archive_influxdb_url");
+        //        final String user = settings.getString("archive_influxdb_user");
+        //        final String password = settings.getString("archive_influxdb_password");
+        //        name = settings.getString("archive_channel");
+        //        array_name = settings.getString("archive_array_channel");
 
-        name = settings.getString("archive_channel");
-        array_name = settings.getString("archive_array_channel");
-        if (url == null  ||  user == null  ||  password == null  ||  name == null)
+        String archive_url = "http://localhost:8086";
+        String user = null;
+        String password = null;
+
+        channel_name = "testPV";
+        array_channel_name = "testPV_Array";
+
+        if (archive_url == null  ||  channel_name == null)
         {
-            System.out.println("Skipping test, no archive_influxdb_url, user, password");
+            System.out.println("Skipping test, missing one of: archive_url, channel_name");
+            writer = null;
             return;
         }
 
-        writer = new InfluxDBArchiveWriter(url, user, password);
+        if (user == null  ||  password == null)
+        {
+            System.out.println("Trying connections with no username or password....");
+            user = null;
+            password = null;
+        }
+
+        try
+        {
+            writer = new InfluxDBArchiveWriter(archive_url, user, password);
+        }
+        catch (Exception e)
+        {
+            System.err.println("Could not create archive reader");
+            e.printStackTrace();
+        }
     }
 
     @After
@@ -71,22 +94,33 @@ public class InfluxDBArchiveWriterTest
             writer.close();
     }
 
+    /** Basic connection */
+    @Test
+    public void testBasicInfo() throws Exception
+    {
+        if (writer == null)
+            return;
+
+        ConnectionInfo ci = writer.getConnectionInfo();
+        System.out.println(ci);
+    }
+
     @Test
     public void testChannelLookup() throws Exception
     {
         if (writer == null)
             return;
-        WriteChannel channel = writer.getChannel(name);
+        WriteChannel channel = writer.getChannel(channel_name);
         System.out.println(channel);
         assertThat(channel, not(nullValue()));
-        assertThat(name, equalTo(channel.getName()));
+        assertThat(channel_name, equalTo(channel.getName()));
 
-        if (array_name == null)
+        if (array_channel_name == null)
             return;
-        channel = writer.getChannel(array_name);
+        channel = writer.getChannel(array_channel_name);
         System.out.println(channel);
         assertThat(channel, not(nullValue()));
-        assertThat(array_name, equalTo(channel.getName()));
+        assertThat(array_channel_name, equalTo(channel.getName()));
     }
 
     @Test
@@ -94,8 +128,8 @@ public class InfluxDBArchiveWriterTest
     {
         if (writer == null)
             return;
-        System.out.println("Writing double sample for channel " + name);
-        final WriteChannel channel = writer.getChannel(name);
+        System.out.println("Writing double sample for channel " + channel_name);
+        final WriteChannel channel = writer.getChannel(channel_name);
         // Write double
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.14));
         // .. double that could be int
@@ -106,10 +140,10 @@ public class InfluxDBArchiveWriterTest
     @Test
     public void testWriteDoubleArray() throws Exception
     {
-        if (writer == null  ||  array_name == null)
+        if (writer == null  ||  array_channel_name == null)
             return;
-        System.out.println("Writing double array sample for channel " + array_name);
-        final WriteChannel channel = writer.getChannel(array_name);
+        System.out.println("Writing double array sample for channel " + array_channel_name);
+        final WriteChannel channel = writer.getChannel(array_channel_name);
         writer.addSample(channel, new ArchiveVNumberArray(Instant.now(), AlarmSeverity.NONE, "OK", display,
                 3.14, 6.28, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0));
         writer.flush();
@@ -120,7 +154,7 @@ public class InfluxDBArchiveWriterTest
     {
         if (writer == null)
             return;
-        final WriteChannel channel = writer.getChannel(name);
+        final WriteChannel channel = writer.getChannel(channel_name);
 
         // Enum, sets enumerated meta data
         writer.addSample(channel, new ArchiveVEnum(Instant.now(), AlarmSeverity.MINOR, "OK", Arrays.asList("Zero", "One"), 1));
@@ -168,8 +202,8 @@ public class InfluxDBArchiveWriterTest
         if (writer == null)
             return;
 
-        System.out.println("Write test: Adding samples to " + name + " for " + TEST_DURATION_SECS + " secs");
-        final WriteChannel channel = writer.getChannel(name);
+        System.out.println("Write test: Adding samples to " + channel_name + " for " + TEST_DURATION_SECS + " secs");
+        final WriteChannel channel = writer.getChannel(channel_name);
 
         long count = 0;
         final long start = System.currentTimeMillis();

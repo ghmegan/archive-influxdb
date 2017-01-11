@@ -18,6 +18,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.csstudio.apputil.time.BenchmarkTimer;
+import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.ValueIterator;
@@ -55,19 +56,15 @@ public class InfluxDBArchiveReaderTest
     public void connect() throws Exception
     {
         //        final TestProperties settings = new TestProperties();
-        //        final String url = settings.getString("archive_rdb_url");
-        //        final String user = settings.getString("archive_rdb_user");
-        //        final String password = settings.getString("archive_rdb_password");
+        //        final String url = settings.getString("archive_influxdb_url");
+        //        final String user = settings.getString("archive_influxdb_user");
+        //        final String password = settings.getString("archive_influxdb_password");
         //        name = settings.getString("archive_channel");
         //        array_name = settings.getString("archive_array_channel");
 
         String archive_url = "http://localhost:8086";
         String user = null;
         String password = null;
-
-        //        archive_url = InfluxDBArchivePreferences.getURL();
-        //        user = InfluxDBArchivePreferences.getUser();
-        //        password = InfluxDBArchivePreferences.getPassword();
 
         channel_name = "testPV";
         array_channel_name = "testPV_Array";
@@ -133,6 +130,9 @@ public class InfluxDBArchiveReaderTest
         System.out.println(reader.getDescription());
         for (ArchiveInfo arch : reader.getArchiveInfos())
             System.out.println(arch);
+
+        ConnectionInfo ci = reader.getConnectionInfo();
+        System.out.println(ci);
     }
 
     /** Locate channels by pattern */

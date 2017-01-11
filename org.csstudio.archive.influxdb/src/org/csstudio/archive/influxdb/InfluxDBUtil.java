@@ -41,6 +41,34 @@ public class InfluxDBUtil
         return influxdb;
     }
 
+    public static class ConnectionInfo
+    {
+        final public String version;
+        final public List<String> dbs;
+        final public InfluxDB influxdb;
+
+        public ConnectionInfo(InfluxDB influxdb) throws Exception
+        {
+            this.influxdb = influxdb;
+            try
+            {
+                version = influxdb.version();
+                dbs = influxdb.describeDatabases();
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Failed to get info for connection. Maybe disconnected?", e);
+            }
+        }
+
+        @Override
+        public String toString()
+        {
+            return "InfluxDB connection version " + version + " [" + dbs.size() + " databases]";
+        }
+
+    };
+
     public static byte[] toByteArray(double value) {
         byte[] bytes = new byte[8];
         ByteBuffer.wrap(bytes).putDouble(value);

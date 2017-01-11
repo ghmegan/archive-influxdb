@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
+import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.influxdb.InfluxDBWrite;
 import org.csstudio.archive.vtype.MetaDataHelper;
 import org.csstudio.archive.writer.ArchiveWriter;
@@ -123,6 +124,11 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         // auto-commit is off, then enables it briefly as needed,
         // and otherwise commits/rolls back.
         //influxdb.getConnection().setAutoCommit(false);
+    }
+
+    public ConnectionInfo getConnectionInfo() throws Exception
+    {
+        return new ConnectionInfo(influxdb);
     }
 
     @Override
