@@ -129,7 +129,7 @@ public class InfluxDBResults
         }
 
         int result_count = getResultCount(results);
-        buf.append("Total Results = ").append(result_count);
+        buf.append("Total Results = ").append(result_count).append('\n');
 
         if (result_count > 0)
         {
@@ -140,7 +140,7 @@ public class InfluxDBResults
                 result_count++;
                 int series_count = getSeriesCount(result);
 
-                buf.append("  Result ").append(result_count).append(": Total Series = ").append(series_count);
+                buf.append("  Result ").append(result_count).append(": Total Series = ").append(series_count).append('\n');
                 if (series_count > 0)
                 {
                     series_count = 0;
@@ -156,17 +156,17 @@ public class InfluxDBResults
                         .append(": name[").append(series.getName())
                         .append("] (").append(tag_count).append(" tags) (")
                         .append(col_count).append(" cols) (")
-                        .append(val_count).append(" vals)");
+                        .append(val_count).append(" vals)").append('\n');
 
                         if (tag_count > 0)
                         {
                             for ( String key : series.getTags().keySet() )
                             {
-                                buf.append("    tag[").append(key).append(":").append(series.getTags().get(key)).append("]");
+                                buf.append("    tag[").append(key).append(":").append(series.getTags().get(key)).append("]").append('\n');
                             }
                         }
 
-                        buf.append("    +-");
+                        buf.append("    +-\n");
                         final TableBuilder tb  = makeSeriesTable(series, col_count, val_count);
                         tb.setIndent("    ");
                         buf.append(tb.toString());
