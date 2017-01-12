@@ -10,9 +10,14 @@ import org.influxdb.InfluxDBFactory;
 public class InfluxDBUtil
 {
 
-    public static String getDBName(final String channel_name)
+    public static String getDataDBName(final String channel_name)
     {
         return InfluxDBArchivePreferences.DBNAME;
+    }
+
+    public static String getMetaDBName(final String channel_name)
+    {
+        return InfluxDBArchivePreferences.METADBNAME;
     }
 
     public static InfluxDB connect(final String url, final String user, final String password) throws Exception

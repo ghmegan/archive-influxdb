@@ -108,7 +108,14 @@ public class InfluxDBResults
                 //r1.clear();
                 for (Object val : vals)
                 {
-                    r0.add(val.toString());
+                    try
+                    {
+                        r0.add(val.toString());
+                    }
+                    catch (Exception e)
+                    {
+                        r0.add("");
+                    }
                     //r1.add(val.getClass().getName());
                 }
                 tb.addRow(r0.toArray());
@@ -121,6 +128,9 @@ public class InfluxDBResults
 
     public static String toString(QueryResult results)
     {
+        if (results == null)
+            return "null";
+
         StringBuilder buf = new StringBuilder();
 
         if ( results.hasError() ) {

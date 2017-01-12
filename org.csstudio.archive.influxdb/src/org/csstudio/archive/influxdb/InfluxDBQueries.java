@@ -20,7 +20,7 @@ public class InfluxDBQueries
 
     public static QueryResult get_oldest_channel_point(final InfluxDB influxdb, final String channel_name)
     {
-        return makeQuery(influxdb, "SELECT * from " + channel_name + " LIMIT 1", InfluxDBUtil.getDBName(channel_name));
+        return makeQuery(influxdb, "SELECT * from " + channel_name + " LIMIT 1", InfluxDBUtil.getDataDBName(channel_name));
     }
 
     public QueryResult get_oldest_channel_point(final String channel_name)
@@ -30,7 +30,7 @@ public class InfluxDBQueries
 
     public static QueryResult get_newest_channel_points(final InfluxDB influxdb, final String channel_name, int num)
     {
-        return makeQuery(influxdb, "SELECT * from " + channel_name + " ORDER BY time DESC LIMIT " + num, InfluxDBUtil.getDBName(channel_name));
+        return makeQuery(influxdb, "SELECT * from " + channel_name + " ORDER BY time DESC LIMIT " + num, InfluxDBUtil.getDataDBName(channel_name));
     }
 
     public QueryResult get_newest_channel_points(final String channel_name, int num)

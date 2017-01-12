@@ -24,7 +24,8 @@ public class InfluxDBArchivePreferences
     //public static final String TIMEOUT = "timeout";
 
     //TODO: Multiple databases?
-    public static final String DBNAME = "allChannels";
+    public static final String DBNAME = "channel_data";
+    public static final String METADBNAME = "channel_meta";
 
     /** @return URL of InfluxDB archive server */
     public static String getURL()

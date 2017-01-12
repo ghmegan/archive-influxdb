@@ -7,11 +7,6 @@
  ******************************************************************************/
 package org.csstudio.archive.writer.influxdb;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-
 import java.time.Instant;
 import java.util.Arrays;
 
@@ -27,7 +22,6 @@ import org.diirt.vtype.ValueFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.csstudio.archive.influxdb.InfluxDBQueries;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 //import org.junit.Ignore;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
@@ -46,7 +40,6 @@ public class InfluxDBArchiveWriterTest
     final Display display = ValueFactory.newDisplay(0.0, 1.0, 2.0, "a.u.", NumberFormats.format(2), 8.0, 9.0, 10.0, 0.0, 10.0);
     private InfluxDBArchiveWriter writer = null;
     private String channel_name, array_channel_name;
-    private InfluxDBQueries influxQuery = null;
 
 
     @Before
@@ -109,30 +102,8 @@ public class InfluxDBArchiveWriterTest
         System.out.println(ci);
     }
 
-    @Test
-    public void testChannelLookup() throws Exception
+    private WriteChannel getMakeChannel(final String channel_name) throws Exception
     {
-        if (writer == null)
-            return;
-        WriteChannel channel = writer.getChannel(channel_name);
-        System.out.println(channel);
-        assertThat(channel, not(nullValue()));
-        assertThat(channel_name, equalTo(channel.getName()));
-
-        if (array_channel_name == null)
-            return;
-        channel = writer.getChannel(array_channel_name);
-        System.out.println(channel);
-        assertThat(channel, not(nullValue()));
-        assertThat(array_channel_name, equalTo(channel.getName()));
-    }
-
-    @Test
-    public void testWriteDouble() throws Exception
-    {
-        if (writer == null)
-            return;
-        System.out.println("Writing double sample for channel " + channel_name);
         WriteChannel channel;
         try
         {
@@ -147,20 +118,33 @@ public class InfluxDBArchiveWriterTest
             }
             catch (Exception e1)
             {
-                System.out.println("Failed to find or make new channel " + channel_name + ". Aborting test");
-                e1.printStackTrace();
                 e.printStackTrace();
-                return;
+                throw new Exception("Failed to find or make new channel " + channel_name, e1);
             }
         }
+        return channel;
+    }
 
+    private void printSomePoints(final String name)
+    {
+        System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_points(name, 4)));
+    }
+
+    @Test
+    public void testWriteDouble() throws Exception
+    {
+        if (writer == null)
+            return;
+        System.out.println("Writing double sample for channel " + channel_name);
+
+        WriteChannel channel = getMakeChannel(channel_name);
         // Write double
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.14));
         // .. double that could be int
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.00));
         writer.flush();
 
-        System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_points(channel.getName(), 4)));
+        printSomePoints(channel.getName());
 
     }
 
@@ -170,10 +154,12 @@ public class InfluxDBArchiveWriterTest
         if (writer == null  ||  array_channel_name == null)
             return;
         System.out.println("Writing double array sample for channel " + array_channel_name);
-        final WriteChannel channel = writer.getChannel(array_channel_name);
+        final WriteChannel channel = getMakeChannel(array_channel_name);
         writer.addSample(channel, new ArchiveVNumberArray(Instant.now(), AlarmSeverity.NONE, "OK", display,
                 3.14, 6.28, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0));
         writer.flush();
+
+        printSomePoints(channel.getName());
     }
 
     @Test
@@ -181,7 +167,7 @@ public class InfluxDBArchiveWriterTest
     {
         if (writer == null)
             return;
-        final WriteChannel channel = writer.getChannel(channel_name);
+        final WriteChannel channel = getMakeChannel(channel_name);
 
         // Enum, sets enumerated meta data
         writer.addSample(channel, new ArchiveVEnum(Instant.now(), AlarmSeverity.MINOR, "OK", Arrays.asList("Zero", "One"), 1));
@@ -194,34 +180,13 @@ public class InfluxDBArchiveWriterTest
         // Integer, sets numeric meta data
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.MINOR, "OK", display, 42));
         writer.flush();
+
+        printSomePoints(channel.getName());
     }
 
     final private static int TEST_DURATION_SECS = 60;
     final private static long FLUSH_COUNT = 500;
 
-    /* PostgreSQL 9 Test Results:
-     *
-     * HP Compact 8000 Elite Small Form Factor,
-     * Intel Core Duo, 3GHz, Windows 7, 32 bit,
-     * Hitachi Hds721025cla382 250gb Sata 7200rpm
-     *
-     * Flush Count  100, 500, 1000: ~7000 samples/sec, no big difference
-     *
-     * After deleting the constraints of sample.channel_id to channel,
-     * severity_id and status_id to sev. and status tables: ~12000 samples/sec,
-     * i.e. almost twice as much.
-     *
-     * JProfiler shows most time spent in 'flush', some in addSample()'s call to setTimestamp(),
-     * but overall time is in RDB, not Java.
-     *
-     *
-     * MySQL Test Results (same w/ original IValue and update to VType):
-     *
-     * iMac8,1    2.8GHz Intel Core 2 Duo, 4GB RAM
-     *
-     * Without rewriteBatchedStatements=true:  ~7000 samples/sec
-     * With rewriteBatchedStatements=true   : ~21000 samples/sec
-     */
     // @Ignore
     @Test
     public void testWriteSpeedDouble() throws Exception
@@ -238,7 +203,7 @@ public class InfluxDBArchiveWriterTest
         do
         {
             ++count;
-            writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.14));
+            writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.11111111));
             if (count % FLUSH_COUNT == 0)
                 writer.flush();
         }

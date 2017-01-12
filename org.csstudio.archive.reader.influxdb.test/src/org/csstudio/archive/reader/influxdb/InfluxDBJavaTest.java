@@ -1,5 +1,6 @@
 package org.csstudio.archive.reader.influxdb;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -14,6 +15,10 @@ import org.influxdb.dto.*;
 
 public class InfluxDBJavaTest
 {
+    String dbName = "aTimeSeries";
+    InfluxDB influxDB;
+    final private static int TEST_DURATION_SECS = 60;
+    final private static long FLUSH_COUNT = 500;
 
     public void printInfo(InfluxDB influxdb)
     {
@@ -29,11 +34,10 @@ public class InfluxDBJavaTest
         }
     }
 
-    /** Basic connection */
-    @Test
-    public void demoBasicConnect() throws Exception
+
+    @Before
+    public void connect() throws Exception
     {
-        InfluxDB influxDB;
         try
         {
             influxDB = InfluxDBFactory.connect("http://localhost:8086");
@@ -46,9 +50,15 @@ public class InfluxDBJavaTest
             return;
         }
 
-        String dbName = "aTimeSeries";
+
         influxDB.createDatabase(dbName);
 
+    }
+
+    /** Basic connection */
+    @Test
+    public void demoBasicConnect() throws Exception
+    {
         long tnano = System.currentTimeMillis() * 1000000 + 1;
 
         double tricky = -Double.MAX_VALUE;
@@ -97,6 +107,53 @@ public class InfluxDBJavaTest
         System.out.println(InfluxDBResults.toString(result));
     }
 
+    @Test
+    public void testWriteSpeedDouble() throws Exception
+    {
+        final String channel_name = "testDouble";
 
+        System.out.println("Write test: Adding samples to " + channel_name + " for " + TEST_DURATION_SECS + " secs");
 
+        long count = 0;
+        final long start = System.currentTimeMillis();
+        final long to_end = start + TEST_DURATION_SECS*1000L;
+        long end;
+
+        BatchPoints batchPoints = BatchPoints
+                .database(dbName)
+                .retentionPolicy("autogen")
+                .consistency(ConsistencyLevel.ALL)
+                .build();
+
+        do
+        {
+            ++count;
+            Point point = Point.measurement(channel_name)
+                    .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS)
+                    .tag("a", "isA")
+                    .tag("b", "isB")
+                    .addField("double", 3.1)
+                    .build();
+
+            batchPoints.point(point);
+
+            if (count % FLUSH_COUNT == 0)
+            {
+                influxDB.write(batchPoints);
+                batchPoints = BatchPoints
+                        .database(dbName)
+                        .retentionPolicy("autogen")
+                        .consistency(ConsistencyLevel.ALL)
+                        .build();
+            }
+            end = System.currentTimeMillis();
+        }
+        while (end < to_end);
+
+        double secs = (end-start) / 1000.0;
+        System.out.println("Wrote " + count + " samples, i.e. "
+                + (count / secs) + " samples/sec.");
+
+        influxDB.write(batchPoints);
+    }
 }
