@@ -16,17 +16,18 @@ import org.csstudio.archive.writer.WriteChannel;
 public class InfluxDBWriteChannel implements WriteChannel
 {
     final private String name;
-    final private int id;
+    //TODO:cleanup
+    //final private int id;
     private Object meta = null;
 
     /** Initialize
      *  @param name Channel name
      *  @param id Channel ID in RDB
      */
-    public InfluxDBWriteChannel(final String name, final int id)
+    public InfluxDBWriteChannel(final String name)
     {
         this.name = name;
-        this.id = id;
+        //this.id = id;
     }
 
     /** {@inheritDoc} */
@@ -36,17 +37,17 @@ public class InfluxDBWriteChannel implements WriteChannel
         return name;
     }
 
-    /** @return RDB ID of channel */
-    public int getId()
-    {
-        return id;
-    }
+    //    /** @return RDB ID of channel */
+    //    public int getId()
+    //    {
+    //        return id;
+    //    }
 
     /** {@inheritDoc} */
     @Override
     public String toString()
     {
-        return "RDBWriteChannel '" + name + "' (" + id + ")";
+        return "InfluxDBWriteChannel '" + name;// + "' (" + id + ")";
     }
 
     /** @return Meta data or <code>null</code> */

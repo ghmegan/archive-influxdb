@@ -43,8 +43,6 @@ public class InfluxDBWrite
     //    final public String sample_insert_string;
 
     /** Initialize
-     *  @param dialect RDB Dialect
-     *  @param schema Schema prefix (May be ""), not including "."
      */
     public InfluxDBWrite()
     {

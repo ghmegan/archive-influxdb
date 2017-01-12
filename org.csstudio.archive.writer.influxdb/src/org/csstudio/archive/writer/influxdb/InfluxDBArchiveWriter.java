@@ -7,28 +7,34 @@
  ******************************************************************************/
 package org.csstudio.archive.writer.influxdb;
 
-//import java.sql.Connection;
-//import java.sql.PreparedStatement;
-//import java.sql.ResultSet;
-//import java.sql.SQLException;
-//import java.sql.Timestamp;
-//import java.sql.Types;
-import java.util.ArrayList;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
+import org.csstudio.archive.influxdb.InfluxDBQueries;
+import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
-import org.csstudio.archive.influxdb.InfluxDBWrite;
 import org.csstudio.archive.vtype.MetaDataHelper;
+import org.csstudio.archive.vtype.VTypeHelper;
 import org.csstudio.archive.writer.ArchiveWriter;
 import org.csstudio.archive.writer.WriteChannel;
 //TODO: cleanup
 //import org.csstudio.platform.utility.influxdb.RDBUtil;
 //import org.csstudio.platform.utility.influxdb.RDBUtil.Dialect;
 import org.influxdb.InfluxDB;
+import org.influxdb.InfluxDB.ConsistencyLevel;
+import org.influxdb.dto.BatchPoints;
+import org.influxdb.dto.Point;
+import org.influxdb.dto.QueryResult;
+import org.diirt.util.array.ListNumber;
+import org.diirt.vtype.AlarmSeverity;
 import org.diirt.vtype.Display;
+import org.diirt.vtype.VDouble;
 import org.diirt.vtype.VEnum;
 import org.diirt.vtype.VType;
 
@@ -52,10 +58,60 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     final private InfluxDB influxdb;
 
     /** SQL statements */
-    final private InfluxDBWrite influxQuery;
+    final private InfluxDBQueries influxQuery;
 
     /** Cache of channels by name */
     final private Map<String, InfluxDBWriteChannel> channels = new HashMap<String, InfluxDBWriteChannel>();
+
+    static class batchPointSets
+    {
+        /** Batched points to be written, per database */
+        final private Map<String, BatchPoints> dbPoints = new HashMap<String, BatchPoints>();
+
+        public BatchPoints getChannelPoints(final String channel_name)
+        {
+            final String dbName = InfluxDBUtil.getDBName(channel_name);
+            BatchPoints points = dbPoints.get(dbName);
+            if (points == null)
+            {
+                //TODO: set retention and consistency policies
+                points = BatchPoints
+                        .database(dbName)
+                        .retentionPolicy("autogen")
+                        .consistency(ConsistencyLevel.ALL)
+                        .build();
+                dbPoints.put(dbName, points);
+            }
+            return points;
+        }
+
+        public BatchPoints getDBPoints(final String dbName) throws Exception
+        {
+            BatchPoints points = dbPoints.get(dbName);
+            if (points == null)
+            {
+                throw new Exception("No points stored for DB " + dbName);
+            }
+            return points;
+        }
+
+        public void removeDBPoints(final String dbName)
+        {
+            dbPoints.remove(dbName);
+        }
+
+        public Set<String> getDBNames()
+        {
+            return dbPoints.keySet();
+        }
+
+        public void clear()
+        {
+            dbPoints.clear();
+        }
+    };
+
+    final batchPointSets batchSets = new batchPointSets();
 
     //    /** Severity (ID, name) cache */
     //    private SeverityCache severities;
@@ -88,8 +144,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     private int batched_txt_inserts = 0;
 
     /** Copy of batched samples, used to display batch errors */
-    private final List<InfluxDBWriteChannel> batched_channel = new ArrayList<InfluxDBWriteChannel>();
-    private final List<VType> batched_samples = new ArrayList<VType>();
+    //    private final List<InfluxDBWriteChannel> batched_channel = new ArrayList<InfluxDBWriteChannel>();
+    //    private final List<VType> batched_samples = new ArrayList<VType>();
 
     /** Initialize from preferences.
      *  This constructor will be invoked when an {@link ArchiveWriter}
@@ -113,7 +169,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     public InfluxDBArchiveWriter(final String url, final String user, final String password) throws Exception
     {
         influxdb = InfluxDBUtil.connect(url, user, password);
-        influxQuery = new InfluxDBWrite();
+        influxQuery = new InfluxDBQueries(influxdb);
         //        severities = new SeverityCache(influxdb, sql);
         //        stati = new StatusCache(influxdb, sql);
 
@@ -131,34 +187,46 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         return new ConnectionInfo(influxdb);
     }
 
+    public InfluxDBQueries getQueries()
+    {
+        return influxQuery;
+    }
+
     @Override
     public WriteChannel getChannel(final String name) throws Exception
     {
         // Check cache
         InfluxDBWriteChannel channel = channels.get(name);
-        //        if (channel == null)
-        //        {    // Get channel information from RDB
-        //            final Connection connection = influxdb.getConnection();
-        //            // connection.setReadOnly(true);
-        //            connection.setAutoCommit(true);
-        //            final PreparedStatement statement = connection.prepareStatement(sql.channel_sel_by_name);
-        //            try
-        //            {
-        //                statement.setString(1, name);
-        //                final ResultSet result = statement.executeQuery();
-        //                if (!result.next())
-        //                    throw new Exception("Unknown channel " + name);
-        //                channel = new InfluxDBWriteChannel(name, result.getInt(1));
-        //                result.close();
-        //                channels.put(name, channel);
-        //            }
-        //            finally
-        //            {
-        //                statement.close();
-        //                // connection.setReadOnly(false);
-        //                connection.setAutoCommit(false);
-        //            }
-        //        }
+        if (channel == null)
+        {    // Get channel information from InfluxDB
+            QueryResult results = influxQuery.get_oldest_channel_point(name);
+            if (InfluxDBResults.getValueCount(results) <= 0)
+            {
+                throw new Exception("Unknown channel " + name);
+            }
+            channel = new InfluxDBWriteChannel(name);
+            channels.put(name, channel);
+        }
+        return channel;
+    }
+
+    public WriteChannel makeNewChannel(final String name) throws Exception
+    {
+        // Check cache
+        InfluxDBWriteChannel channel = channels.get(name);
+        if (channel != null)
+        {
+            throw new Exception("Channel already exists " + name);
+        }
+
+        QueryResult results = influxQuery.get_oldest_channel_point(influxdb, name);
+        if (InfluxDBResults.getValueCount(results) > 0)
+        {
+            throw new Exception("Channel already exists " + name);
+        }
+        channel = new InfluxDBWriteChannel(name);
+        channels.put(name, channel);
+
         return channel;
     }
 
@@ -168,8 +236,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         final InfluxDBWriteChannel influxdb_channel = (InfluxDBWriteChannel) channel;
         writeMetaData(influxdb_channel, sample);
         batchSample(influxdb_channel, sample);
-        batched_channel.add(influxdb_channel);
-        batched_samples.add(sample);
+        //        batched_channel.add(influxdb_channel);
+        //        batched_samples.add(sample);
     }
 
     /** Write meta data if it was never written or has changed
@@ -246,6 +314,10 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
      */
     private void batchSample(final InfluxDBWriteChannel channel, final VType sample) throws Exception
     {
+        final Instant stamp = VTypeHelper.getTimestamp(sample);
+        final String severity = VTypeHelper.getSeverity(sample).toString();
+        final String status = VTypeHelper.getMessage(sample);
+
         //        final Timestamp stamp = TimestampHelper.toSQLTimestamp(VTypeHelper.getTimestamp(sample));
         //        final int severity = severities.findOrCreate(VTypeHelper.getSeverity(sample));
         //        final Status status = stati.findOrCreate(VTypeHelper.getMessage(sample));
@@ -254,10 +326,10 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         //        if (influxdb.getConnection().getAutoCommit() == true)
         //            influxdb.getConnection().setAutoCommit(false);
         //
-        //        // Start with most likely cases and highest precision: Double, ...
-        //        // Then going down in precision to integers, finally strings...
-        //        if (sample instanceof VDouble)
-        //            batchDoubleSamples(channel, stamp, severity, status, ((VDouble)sample).getValue(), null);
+        // Start with most likely cases and highest precision: Double, ...
+        // Then going down in precision to integers, finally strings...
+        if (sample instanceof VDouble)
+            batchDoubleSamples(channel, stamp, severity, status, ((VDouble)sample).getValue(), null);
         //        else if (sample instanceof VNumber)
         //        {    // Write as double or integer?
         //            final Number number = ((VNumber)sample).getValue();
@@ -281,13 +353,13 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
 
     //    /** Helper for batchSample: Add double sample(s) to batch. */
     //    private void batchDoubleSamples(final InfluxDBWriteChannel channel,
-    //            final Timestamp stamp, final int severity,
-    //            final Status status, final double dbl, final ListNumber additional) throws Exception
+    //            final Instant stamp, final String severity,
+    //            final String status, final double dbl, final ListNumber additional) throws Exception
     //    {
     //        if (use_array_blob)
     //            batchBlobbedDoubleSample(channel, stamp, severity, status, dbl, additional);
     //        else
-    //            oldBatchDoubleSamples(channel, stamp, severity, status, dbl, additional);
+    //        oldBatchDoubleSamples(channel, stamp, severity, status, dbl, additional);
     //    }
 
     //    /** Helper for batchSample: Add double sample(s) to batch, using
@@ -361,62 +433,94 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     //    /** Add 'insert' for double samples to batch, handling arrays
     //     *  via the original array_val table
     //     */
-    //    private void oldBatchDoubleSamples(final InfluxDBWriteChannel channel,
-    //            final Timestamp stamp, final int severity,
-    //            final Status status, final double dbl, final ListNumber additional) throws Exception
-    //    {
-    //        if (insert_double_sample == null)
-    //        {
-    //            insert_double_sample = createInsertPrepareStatement(sql.sample_insert_double);
-    //        }
-    //        // Catch not-a-number, which JDBC (at least Oracle) can't handle.
-    //        if (Double.isNaN(dbl))
-    //        {
-    //            insert_double_sample.setDouble(5, 0.0);
-    //            completeAndBatchInsert(insert_double_sample,
-    //                    channel, stamp,
-    //                    severities.findOrCreate(AlarmSeverity.UNDEFINED),
-    //                    stati.findOrCreate(NOT_A_NUMBER_STATUS));
-    //        }
-    //        else
-    //        {
-    //            insert_double_sample.setDouble(5, dbl);
-    //            completeAndBatchInsert(insert_double_sample, channel, stamp, severity, status);
-    //        }
-    //        ++batched_double_inserts;
-    //        // More array elements?
-    //        if (additional != null)
-    //        {
-    //            if (insert_array_sample == null)
-    //                insert_array_sample =
-    //                influxdb.getConnection().prepareStatement(
-    //                        sql.sample_insert_double_array_element);
-    //            final int N = additional.size();
-    //            for (int i = 1; i < N; i++)
-    //            {
-    //                insert_array_sample.setInt(1, channel.getId());
-    //                insert_array_sample.setTimestamp(2, stamp);
-    //                insert_array_sample.setInt(3, i);
-    //                // Patch NaN.
-    //                // Conundrum: Should we set the status/severity to indicate NaN?
-    //                // Would be easy if we wrote the main sample with overall
-    //                // stat/sevr at the end.
-    //                // But we have to write it first to avoid index (key) errors
-    //                // with the array sample time stamp....
-    //                // Go back and update the main sample after the fact??
-    //                if (Double.isNaN(additional.getDouble(i)))
-    //                    insert_array_sample.setDouble(4, 0.0);
-    //                else
-    //                    insert_array_sample.setDouble(4, additional.getDouble(i));
-    //                // MySQL nanosecs
-    //                if (influxdb.getDialect() == Dialect.MySQL || influxdb.getDialect() == Dialect.PostgreSQL)
-    //                    insert_array_sample.setInt(5, stamp.getNanos());
-    //                // Batch
-    //                insert_array_sample.addBatch();
-    //                ++batched_double_array_inserts;
-    //            }
-    //        }
-    //    }
+    private void batchDoubleSamples(final InfluxDBWriteChannel channel,
+            final Instant stamp, final String severity,
+            final String status, final double dbl, final ListNumber additional) throws Exception
+    {
+        Point point;
+        Instant.now();
+
+        //TODO: Catch other number states than NaN (e.g. INF)? Add tags instead of status string?
+        if (Double.isNaN(dbl))
+        {
+            //TODO: nano precision may be lost int time field (library limitation)
+            point = Point.measurement(channel.getName())
+                    .time(stamp.getEpochSecond() + stamp.getNano(), TimeUnit.NANOSECONDS)
+                    .tag("severity", AlarmSeverity.UNDEFINED.name())
+                    .tag("status", NOT_A_NUMBER_STATUS)
+                    .addField("double", 0.0d)
+                    .build();
+        }
+        else
+        {
+            point = Point.measurement(channel.getName())
+                    .time(stamp.getEpochSecond() + stamp.getNano(), TimeUnit.NANOSECONDS)
+                    .tag("severity", severity)
+                    .tag("status", status)
+                    .addField("double", dbl)
+                    .build();
+        }
+
+        if (additional != null)
+        {
+            //TODO: handle arrays
+            throw new Exception("batchDoubleSamples: Double array points not handled");
+        }
+
+        batchSets.getChannelPoints(channel.getName()).point(point);
+
+        //        if (insert_double_sample == null)
+        //        {
+        //            insert_double_sample = createInsertPrepareStatement(sql.sample_insert_double);
+        //        }
+        //        // Catch not-a-number, which JDBC (at least Oracle) can't handle.
+        //        if (Double.isNaN(dbl))
+        //        {
+        //            insert_double_sample.setDouble(5, 0.0);
+        //            completeAndBatchInsert(insert_double_sample,
+        //                    channel, stamp,
+        //                    severities.findOrCreate(AlarmSeverity.UNDEFINED),
+        //                    stati.findOrCreate(NOT_A_NUMBER_STATUS));
+        //        }
+        //        else
+        //        {
+        //            insert_double_sample.setDouble(5, dbl);
+        //            completeAndBatchInsert(insert_double_sample, channel, stamp, severity, status);
+        //        }
+        //        ++batched_double_inserts;
+        //        // More array elements?
+        //        if (additional != null)
+        //        {
+        //            if (insert_array_sample == null)
+        //                insert_array_sample =
+        //                influxdb.getConnection().prepareStatement(
+        //                        sql.sample_insert_double_array_element);
+        //            final int N = additional.size();
+        //            for (int i = 1; i < N; i++)
+        //            {
+        //                insert_array_sample.setInt(1, channel.getId());
+        //                insert_array_sample.setTimestamp(2, stamp);
+        //                insert_array_sample.setInt(3, i);
+        //                // Patch NaN.
+        //                // Conundrum: Should we set the status/severity to indicate NaN?
+        //                // Would be easy if we wrote the main sample with overall
+        //                // stat/sevr at the end.
+        //                // But we have to write it first to avoid index (key) errors
+        //                // with the array sample time stamp....
+        //                // Go back and update the main sample after the fact??
+        //                if (Double.isNaN(additional.getDouble(i)))
+        //                    insert_array_sample.setDouble(4, 0.0);
+        //                else
+        //                    insert_array_sample.setDouble(4, additional.getDouble(i));
+        //                // MySQL nanosecs
+        //                if (influxdb.getDialect() == Dialect.MySQL || influxdb.getDialect() == Dialect.PostgreSQL)
+        //                    insert_array_sample.setInt(5, stamp.getNanos());
+        //                // Batch
+        //                insert_array_sample.addBatch();
+        //                ++batched_double_array_inserts;
+        //            }
+        //        }
+    }
 
     //    /** Helper for batchSample: Add long sample to batch.  */
     //    private void batchLongSample(final InfluxDBWriteChannel channel,
@@ -479,6 +583,20 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     @Override
     public void flush() throws Exception
     {
+        for (String dbName : batchSets.getDBNames())
+        {
+            BatchPoints batchPoints = batchSets.getDBPoints(dbName);
+            try
+            {
+                influxdb.write(batchPoints);
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Write of points failed " + e.getMessage(), e);
+            }
+            batchSets.removeDBPoints(dbName);
+        }
+
         //        try
         //        {
         //            if (batched_double_inserts > 0)

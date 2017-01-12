@@ -27,6 +27,8 @@ import org.diirt.vtype.ValueFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.csstudio.archive.influxdb.InfluxDBQueries;
+import org.csstudio.archive.influxdb.InfluxDBResults;
 //import org.junit.Ignore;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 
@@ -44,6 +46,8 @@ public class InfluxDBArchiveWriterTest
     final Display display = ValueFactory.newDisplay(0.0, 1.0, 2.0, "a.u.", NumberFormats.format(2), 8.0, 9.0, 10.0, 0.0, 10.0);
     private InfluxDBArchiveWriter writer = null;
     private String channel_name, array_channel_name;
+    private InfluxDBQueries influxQuery = null;
+
 
     @Before
     public void connect() throws Exception
@@ -82,7 +86,7 @@ public class InfluxDBArchiveWriterTest
         }
         catch (Exception e)
         {
-            System.err.println("Could not create archive reader");
+            System.err.println("Could not create archive writer");
             e.printStackTrace();
         }
     }
@@ -129,12 +133,35 @@ public class InfluxDBArchiveWriterTest
         if (writer == null)
             return;
         System.out.println("Writing double sample for channel " + channel_name);
-        final WriteChannel channel = writer.getChannel(channel_name);
+        WriteChannel channel;
+        try
+        {
+            channel = writer.getChannel(channel_name);
+        }
+        catch (Exception e)
+        {
+            System.out.println("Failed to get channel, trying to make new...");
+            try
+            {
+                channel = writer.makeNewChannel(channel_name);
+            }
+            catch (Exception e1)
+            {
+                System.out.println("Failed to find or make new channel " + channel_name + ". Aborting test");
+                e1.printStackTrace();
+                e.printStackTrace();
+                return;
+            }
+        }
+
         // Write double
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.14));
         // .. double that could be int
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.00));
         writer.flush();
+
+        System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_points(channel.getName(), 4)));
+
     }
 
     @Test

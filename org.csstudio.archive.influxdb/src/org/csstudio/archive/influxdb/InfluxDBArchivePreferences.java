@@ -23,6 +23,9 @@ public class InfluxDBArchivePreferences
     //TODO: How to use timeout with Influx? Possible with Java interface?
     //public static final String TIMEOUT = "timeout";
 
+    //TODO: Multiple databases?
+    public static final String DBNAME = "allChannels";
+
     /** @return URL of InfluxDB archive server */
     public static String getURL()
     {

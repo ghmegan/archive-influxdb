@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDB.ConsistencyLevel;
@@ -36,7 +37,7 @@ public class InfluxDBJavaTest
         try
         {
             influxDB = InfluxDBFactory.connect("http://localhost:8086");
-            String ver = influxDB.version();
+            printInfo(influxDB);
         }
         catch (Exception e1)
         {
@@ -44,7 +45,6 @@ public class InfluxDBJavaTest
             e1.printStackTrace();
             return;
         }
-        printInfo(influxDB);
 
         String dbName = "aTimeSeries";
         influxDB.createDatabase(dbName);
@@ -79,6 +79,8 @@ public class InfluxDBJavaTest
 
         try
         {
+            // Any failure response from the influx server will thrown as an exception
+            // with the exception error message set to the server response
             influxDB.write(batchPoints);
         }
         catch (Exception e)
@@ -92,8 +94,7 @@ public class InfluxDBJavaTest
         System.out.println("Sending query: " + query.getCommandWithUrlEncoded());
 
         QueryResult result = influxDB.query(query);
-        //System.out.println(result.toString());
-        InfluxDBUtil.printResult(result);
+        System.out.println(InfluxDBResults.toString(result));
     }
 
 
