@@ -20,6 +20,8 @@ import org.csstudio.archive.influxdb.InfluxDBQueries;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
+import org.csstudio.archive.influxdb.MetaTypes;
+import org.csstudio.archive.influxdb.MetaTypes.StoreAs;
 import org.csstudio.archive.vtype.MetaDataHelper;
 import org.csstudio.archive.vtype.VTypeHelper;
 import org.csstudio.archive.writer.ArchiveWriter;
@@ -35,7 +37,6 @@ import org.influxdb.dto.QueryResult;
 import org.diirt.util.array.ListNumber;
 import org.diirt.vtype.AlarmSeverity;
 import org.diirt.vtype.Display;
-import org.diirt.vtype.VDouble;
 import org.diirt.vtype.VEnum;
 import org.diirt.vtype.VNumber;
 import org.diirt.vtype.VNumberArray;
@@ -167,7 +168,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         InfluxDBWriteChannel channel = channels.get(name);
         if (channel == null)
         {    // Get channel information from InfluxDB
-            QueryResult results = influxQuery.get_oldest_channel_point(name);
+            QueryResult results = influxQuery.get_oldest_channel_sample(name);
             if (InfluxDBResults.getValueCount(results) <= 0)
             {
                 throw new Exception("Unknown channel " + name);
@@ -184,13 +185,13 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         InfluxDBWriteChannel channel = channels.get(name);
         if (channel != null)
         {
-            throw new Exception("Channel already exists " + name);
+            throw new Exception("Channel already exists in Writer " + name);
         }
 
-        QueryResult results = influxQuery.get_oldest_channel_point(name);
+        QueryResult results = influxQuery.get_oldest_channel_sample(name);
         if (InfluxDBResults.getValueCount(results) > 0)
         {
-            throw new Exception("Channel already exists " + name);
+            throw new Exception("Channel already exists in Database " + name);
         }
         channel = new InfluxDBWriteChannel(name);
         channels.put(name, channel);
@@ -258,6 +259,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         final String severity = VTypeHelper.getSeverity(sample).toString();
         final String status = VTypeHelper.getMessage(sample);
 
+        final StoreAs storeas = MetaTypes.writeVtypeAs(sample);
+
         //        final Timestamp stamp = TimestampHelper.toSQLTimestamp(VTypeHelper.getTimestamp(sample));
         //        final int severity = severities.findOrCreate(VTypeHelper.getSeverity(sample));
         //        final Status status = stati.findOrCreate(VTypeHelper.getMessage(sample));
@@ -266,29 +269,67 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         //        if (influxdb.getConnection().getAutoCommit() == true)
         //            influxdb.getConnection().setAutoCommit(false);
         //
-        // Start with most likely cases and highest precision: Double, ...
-        // Then going down in precision to integers, finally strings...
-        if (sample instanceof VDouble)
-            batchDoubleSamples(channel, stamp, severity, status, ((VDouble)sample).getValue(), null);
-        else if (sample instanceof VNumber)
-        {    // Write as double or integer?
+        switch (storeas)
+        {
+        case ARCHIVE_DOUBLE :
+        {
             final Number number = ((VNumber)sample).getValue();
-            if (number instanceof Double)
-                batchDoubleSamples(channel, stamp, severity, status, number.doubleValue(), null);
-            else
-                batchLongSample(channel, stamp, severity, status, number.longValue());
+            batchDoubleSamples(channel, stamp, severity, status, number.doubleValue(), null);
+            break;
         }
-        else if (sample instanceof VNumberArray)
+        case ARCHIVE_LONG:
+        {
+            final Number number = ((VNumber)sample).getValue();
+            batchLongSample(channel, stamp, severity, status, number.longValue());
+            break;
+        }
+        case ARCHIVE_DOUBLE_ARRAY:
         {
             final ListNumber data = ((VNumberArray)sample).getData();
             batchDoubleSamples(channel, stamp, severity, status, data.getDouble(0), data);
+            break;
         }
-        else if (sample instanceof VEnum)
+        case ARCHIVE_ENUM:
+        {
             batchLongSample(channel, stamp, severity, status, ((VEnum)sample).getIndex());
-        else if (sample instanceof VString)
+            break;
+        }
+        case ARCHIVE_STRING:
+        {
             batchTextSamples(channel, stamp, severity, status, ((VString)sample).getValue());
-        else // Handle possible other types as strings
+            break;
+        }
+        case ARCHIVE_UNKNOWN:
+        {
             batchTextSamples(channel, stamp, severity, status, sample.toString());
+            break;
+        }
+        default:
+            throw new Exception ("Sample generated unhandled store type: " + storeas.name());
+        }
+
+
+        //        if (sample instanceof VDouble)
+        //            batchDoubleSamples(channel, stamp, severity, status, ((VDouble)sample).getValue(), null);
+        //        else if (sample instanceof VNumber)
+        //        {    // Write as double or integer?
+        //            final Number number = ((VNumber)sample).getValue();
+        //            if (number instanceof Double)
+        //                batchDoubleSamples(channel, stamp, severity, status, number.doubleValue(), null);
+        //            else
+        //                batchLongSample(channel, stamp, severity, status, number.longValue());
+        //        }
+        //        else if (sample instanceof VNumberArray)
+        //        {
+        //            final ListNumber data = ((VNumberArray)sample).getData();
+        //            batchDoubleSamples(channel, stamp, severity, status, data.getDouble(0), data);
+        //        }
+        //        else if (sample instanceof VEnum)
+        //            batchLongSample(channel, stamp, severity, status, ((VEnum)sample).getIndex());
+        //        else if (sample instanceof VString)
+        //            batchTextSamples(channel, stamp, severity, status, ((VString)sample).getValue());
+        //        else // Handle possible other types as strings
+        //            batchTextSamples(channel, stamp, severity, status, sample.toString());
 
     }
 
@@ -308,7 +349,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         {
             //TODO: nano precision may be lost Long time field (library limitation)
             point = Point.measurement(channel.getName())
-                    .time(stamp.getEpochSecond() * 1000000000 + stamp.getNano(), TimeUnit.NANOSECONDS)
+                    .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
                     .tag("severity", AlarmSeverity.UNDEFINED.name())
                     .tag("status", NOT_A_NUMBER_STATUS)
                     .addField("double.0", 0.0d);
@@ -316,7 +357,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         else
         {
             point = Point.measurement(channel.getName())
-                    .time(stamp.getEpochSecond() * 1000000000 + stamp.getNano(), TimeUnit.NANOSECONDS)
+                    .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
                     .tag("severity", severity)
                     .tag("status", status)
                     .addField("double.0", dbl);
@@ -348,7 +389,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             final String status, final long num) throws Exception
     {
         Point point = Point.measurement(channel.getName())
-                .time(stamp.getEpochSecond() * 1000000000 + stamp.getNano(), TimeUnit.NANOSECONDS)
+                .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
                 .tag("severity", severity)
                 .tag("status", status)
                 .addField("long.0", num).
@@ -371,7 +412,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             txt = txt.substring(0, MAX_TEXT_SAMPLE_LENGTH);
         }
         Point point = Point.measurement(channel.getName())
-                .time(stamp.getEpochSecond() * 1000000000 + stamp.getNano(), TimeUnit.NANOSECONDS)
+                .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
                 .tag("severity", severity)
                 .tag("status", status)
                 .addField("string.0", txt).

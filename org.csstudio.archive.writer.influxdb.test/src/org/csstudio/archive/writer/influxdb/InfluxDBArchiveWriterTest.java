@@ -127,7 +127,7 @@ public class InfluxDBArchiveWriterTest
 
     private void printSomePoints(final String name)
     {
-        System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_points(name, 4)));
+        System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_samples(name, 8)));
     }
 
     @Test

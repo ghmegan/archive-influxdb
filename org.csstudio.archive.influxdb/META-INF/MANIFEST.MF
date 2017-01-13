@@ -13,3 +13,5 @@ Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .
 Export-Package: org.csstudio.archive.influxdb
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Import-Package: org.csstudio.archive.vtype,
+ org.diirt.vtype;version="3.1.6"

@@ -1,6 +1,8 @@
 package org.csstudio.archive.influxdb;
 
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -9,6 +11,28 @@ import org.influxdb.InfluxDBFactory;
 
 public class InfluxDBUtil
 {
+
+    public static BigInteger toNano(Instant time)
+    {
+        BigInteger ret = BigInteger.valueOf(time.getEpochSecond());
+        ret.multiply(BigInteger.valueOf(1000000000));
+        ret.add(BigInteger.valueOf(time.getNano()));
+        return ret;
+    }
+
+    public static long toNanoLong(Instant time)
+    {
+        final BigInteger ret = toNano(time);
+        try
+        {
+            return ret.longValueExact();
+        }
+        catch (Exception e)
+        {
+            Activator.getLogger().log(Level.WARNING, "Could not convert instant to long time stamp!", e);
+        }
+        return ret.longValue();
+    }
 
     public static String getDataDBName(final String channel_name)
     {
