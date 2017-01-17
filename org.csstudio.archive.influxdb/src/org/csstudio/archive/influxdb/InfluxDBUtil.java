@@ -12,11 +12,13 @@ import org.influxdb.InfluxDBFactory;
 public class InfluxDBUtil
 {
 
+    private static final BigInteger nanomult = new BigInteger("1000000000");
+
     public static BigInteger toNano(Instant time)
     {
         BigInteger ret = BigInteger.valueOf(time.getEpochSecond());
-        ret.multiply(BigInteger.valueOf(1000000000));
-        ret.add(BigInteger.valueOf(time.getNano()));
+        ret = ret.multiply(nanomult);
+        ret = ret.add(BigInteger.valueOf(time.getNano()));
         return ret;
     }
 

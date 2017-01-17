@@ -21,6 +21,7 @@ import org.diirt.vtype.Display;
 import org.diirt.vtype.ValueFactory;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 //import org.junit.Ignore;
@@ -56,8 +57,8 @@ public class InfluxDBArchiveWriterTest
         String user = null;
         String password = null;
 
-        channel_name = "testPV";
-        array_channel_name = "testPV_Array";
+        channel_name = "testPV0";
+        array_channel_name = "testPV_Array0";
 
         if (archive_url == null  ||  channel_name == null)
         {
@@ -104,17 +105,18 @@ public class InfluxDBArchiveWriterTest
 
     private WriteChannel getMakeChannel(final String channel_name) throws Exception
     {
-        WriteChannel channel;
+        InfluxDBWriteChannel channel;
         try
         {
-            channel = writer.getChannel(channel_name);
+            channel = (InfluxDBWriteChannel) writer.getChannel(channel_name);
+            System.out.println("Channel " + channel_name + " is stored as " + channel.toLongString());
         }
         catch (Exception e)
         {
             System.out.println("Failed to get channel, trying to make new...");
             try
             {
-                channel = writer.makeNewChannel(channel_name);
+                channel = (InfluxDBWriteChannel) writer.makeNewChannel(channel_name);
             }
             catch (Exception e1)
             {
@@ -127,7 +129,9 @@ public class InfluxDBArchiveWriterTest
 
     private void printSomePoints(final String name)
     {
+        System.out.println(InfluxDBResults.toString(writer.getQueries().get_all_meta_data(name)));
         System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_samples(name, 8)));
+
     }
 
     @Test
@@ -163,6 +167,20 @@ public class InfluxDBArchiveWriterTest
     }
 
     @Test
+    public void testWriteText() throws Exception
+    {
+        if (writer == null)
+            return;
+        final WriteChannel channel = getMakeChannel(channel_name);
+
+        writer.addSample(channel, new ArchiveVString(Instant.now(), AlarmSeverity.MAJOR, "OK", "Foo"));
+        writer.addSample(channel, new ArchiveVString(Instant.now(), AlarmSeverity.MAJOR, "OK", "Bar"));
+        writer.flush();
+
+        printSomePoints(channel.getName());
+    }
+
+    @Test
     public void testWriteLongEnumText() throws Exception
     {
         if (writer == null)
@@ -173,7 +191,7 @@ public class InfluxDBArchiveWriterTest
         writer.addSample(channel, new ArchiveVEnum(Instant.now(), AlarmSeverity.MINOR, "OK", Arrays.asList("Zero", "One"), 1));
         writer.flush();
 
-        // Writing string leaves the enumerated meta data untouched
+        // Writing string
         writer.addSample(channel, new ArchiveVString(Instant.now(), AlarmSeverity.MAJOR, "OK", "Hello"));
         writer.flush();
 
@@ -187,9 +205,9 @@ public class InfluxDBArchiveWriterTest
     final private static int TEST_DURATION_SECS = 60;
     final private static long FLUSH_COUNT = 500;
 
-    // @Ignore
+    @Ignore
     @Test
-    public void testWriteSpeedDouble() throws Exception
+    public void demoWriteSpeedDouble() throws Exception
     {
         if (writer == null)
             return;

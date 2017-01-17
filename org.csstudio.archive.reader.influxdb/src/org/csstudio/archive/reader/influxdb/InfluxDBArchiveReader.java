@@ -31,20 +31,15 @@ import org.diirt.util.time.TimeDuration;
 public class InfluxDBArchiveReader implements ArchiveReader
 {
     //TODO: cleanup.
-    //final private boolean use_array_blob;
 
     final private String url;
     final private String user;
     final private int password;
     /** Timeout [secs] used for some operations that should be 'fast' */
     //final private int timeout;
-
-    /** Name of stored procedure or "" */
-    //    final private String stored_procedure;
     //
     final private ConnectionCache.Entry influxdb;
     final private InfluxDBRead influxQuery;
-    //    final private boolean is_oracle;
 
     /** Map of status IDs to Status strings */
     // don't need this for influx, just store the status strings as tags
@@ -53,10 +48,6 @@ public class InfluxDBArchiveReader implements ArchiveReader
     /** Map of severity IDs to Severities */
     // don't need this for influx, just store severity strings as tags
     //final private HashMap<Integer, AlarmSeverity> severities;
-
-    //    /** List of statements to cancel in cancel() */
-    //    private ArrayList<Statement> cancellable_statements =
-    //            new ArrayList<Statement>();
 
     private boolean concurrency = false;
 
@@ -94,25 +85,6 @@ public class InfluxDBArchiveReader implements ArchiveReader
         influxdb = ConnectionCache.get(url, user, password);
         influxQuery = new InfluxDBRead("*");
 
-        //        final Dialect dialect = rdb.getDialect();
-        //        switch (dialect)
-        //        {
-        //        case MySQL:
-        //            is_oracle = false;
-        //            this.stored_procedure = stored_procedure;
-        //            break;
-        //        case PostgreSQL:
-        //            is_oracle = false;
-        //            this.stored_procedure = stored_procedure;
-        //            break;
-        //        case Oracle:
-        //            is_oracle = true;
-        //            this.stored_procedure = stored_procedure;
-        //            break;
-        //        default:
-        //            throw new Exception("Unknown database dialect " + dialect);
-        //        }
-        //        sql = new SQL(dialect, schema);
         //stati = getStatusValues();
         //severities = getSeverityValues();
     }
@@ -198,11 +170,6 @@ public class InfluxDBArchiveReader implements ArchiveReader
         return new ConnectionInfo(influxdb.getConnection());
     }
 
-    //    Dialect getDialect()
-    //    {
-    //        return rdb.getDialect();
-    //    }
-
     /** @return Query statements */
     InfluxDBRead getQuery()
     {
@@ -273,24 +240,34 @@ public class InfluxDBArchiveReader implements ArchiveReader
                 };
     }
 
+    private static String escape_specials(final String specials, String pattern)
+    {
+        for (char c : specials.toCharArray())
+        {
+            pattern = pattern.replace(String.valueOf(c), "\\" + c);
+        }
+        return pattern;
+    }
+
     /** {@inheritDoc} */
     @Override
     public String[] getNamesByPattern(final int key, final String glob_pattern) throws Exception
     {
-        // Escape underscores because they are SQL patterns
-        String sql_pattern = glob_pattern.replace("_", "\\_");
-        // Glob '?' -> SQL '_'
-        sql_pattern = sql_pattern.replace('?', '_');
-        // Glob '*' -> SQL '%'
-        sql_pattern = sql_pattern.replace('*', '%');
-        return perform_search(sql_pattern, influxQuery.channel_sel_by_like);
+        // Escape regex special chars
+        String rx_pattern = glob_pattern.replace("\\", "\\\\");
+        rx_pattern = escape_specials(".^$", rx_pattern);
+
+        rx_pattern = rx_pattern.replace("*", ".*");
+        rx_pattern = rx_pattern.replace('?', '.');
+
+        return perform_search(rx_pattern);
     }
 
     /** {@inheritDoc} */
     @Override
     public String[] getNamesByRegExp(final int key, final String reg_exp) throws Exception
     {
-        return perform_search(reg_exp, influxQuery.channel_sel_by_reg_exp);
+        return perform_search(reg_exp);
     }
 
     /** Perform channel search by name pattern
@@ -299,7 +276,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
      *  @return Channel names
      *  @throws Exception on error
      */
-    private String[] perform_search(final String pattern, final String sql_query) throws Exception
+    private String[] perform_search(final String pattern) throws Exception
     {
         final ArrayList<String> names = new ArrayList<String>();
         //        final PreparedStatement statement = rdb.getConnection().prepareStatement(sql_query);

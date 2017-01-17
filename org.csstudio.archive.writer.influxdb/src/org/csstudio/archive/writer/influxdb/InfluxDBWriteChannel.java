@@ -7,6 +7,8 @@
  ******************************************************************************/
 package org.csstudio.archive.writer.influxdb;
 
+import org.csstudio.archive.influxdb.MetaTypes.MetaObject;
+import org.csstudio.archive.influxdb.MetaTypes.StoreAs;
 import org.csstudio.archive.writer.WriteChannel;
 
 /** Channel information for channel in RDB
@@ -16,9 +18,8 @@ import org.csstudio.archive.writer.WriteChannel;
 public class InfluxDBWriteChannel implements WriteChannel
 {
     final private String name;
-    //TODO:cleanup
-    //final private int id;
     private Object meta = null;
+    private StoreAs storeas = StoreAs.ARCHIVE_UNKNOWN;
 
     /** Initialize
      *  @param name Channel name
@@ -27,7 +28,6 @@ public class InfluxDBWriteChannel implements WriteChannel
     public InfluxDBWriteChannel(final String name)
     {
         this.name = name;
-        //this.id = id;
     }
 
     /** {@inheritDoc} */
@@ -37,17 +37,11 @@ public class InfluxDBWriteChannel implements WriteChannel
         return name;
     }
 
-    //    /** @return RDB ID of channel */
-    //    public int getId()
-    //    {
-    //        return id;
-    //    }
-
     /** {@inheritDoc} */
     @Override
     public String toString()
     {
-        return "InfluxDBWriteChannel '" + name;// + "' (" + id + ")";
+        return "InfluxDBWriteChannel '" + name + "'";
     }
 
     /** @return Meta data or <code>null</code> */
@@ -56,9 +50,37 @@ public class InfluxDBWriteChannel implements WriteChannel
         return meta;
     }
 
+    public StoreAs getStorageType()
+    {
+        return storeas;
+    }
+
     /** @param meta Current meta data of channel */
-    public void setMetaData(final Object meta)
+    public void setMetaData(final Object meta, final StoreAs storeas)
     {
         this.meta = meta;
+        this.storeas = storeas;
     }
+
+    public void setMetaData(MetaObject mo)
+    {
+        this.meta = mo.object;
+        this.storeas = mo.storeas;
+    }
+
+    public String toLongString()
+    {
+        String metaclass;
+        try
+        {
+            metaclass = meta.getClass().getName();
+        }
+        catch (Exception e)
+        {
+            metaclass = "";
+        }
+
+        return "InfluxDBWriteChannel '" + name + "' (" + storeas.name() + ": " + metaclass + ")";
+    }
+
 }

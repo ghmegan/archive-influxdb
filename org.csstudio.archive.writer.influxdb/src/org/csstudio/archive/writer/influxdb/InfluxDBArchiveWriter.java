@@ -73,9 +73,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         /** Batched points to be written, per database */
         final private Map<String, BatchPoints> dbPoints = new HashMap<String, BatchPoints>();
 
-        public BatchPoints getChannelPoints(final String channel_name)
+        private BatchPoints getMakePoints(final String dbName)
         {
-            final String dbName = InfluxDBUtil.getDataDBName(channel_name);
             BatchPoints points = dbPoints.get(dbName);
             if (points == null)
             {
@@ -88,6 +87,16 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
                 dbPoints.put(dbName, points);
             }
             return points;
+        }
+
+        public BatchPoints getChannelSamplePoints(final String channel_name)
+        {
+            return getMakePoints(InfluxDBUtil.getDataDBName(channel_name));
+        }
+
+        public BatchPoints getChannelMetaPoints(final String channel_name)
+        {
+            return getMakePoints(InfluxDBUtil.getMetaDBName(channel_name));
         }
 
         public BatchPoints getDBPoints(final String dbName) throws Exception
@@ -168,12 +177,13 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         InfluxDBWriteChannel channel = channels.get(name);
         if (channel == null)
         {    // Get channel information from InfluxDB
-            QueryResult results = influxQuery.get_oldest_channel_sample(name);
+            QueryResult results = influxQuery.get_newest_meta_datum(name, null);
             if (InfluxDBResults.getValueCount(results) <= 0)
             {
                 throw new Exception("Unknown channel " + name);
             }
             channel = new InfluxDBWriteChannel(name);
+            channel.setMetaData(MetaTypes.toMetaObject(results));
             channels.put(name, channel);
         }
         return channel;
@@ -188,7 +198,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             throw new Exception("Channel already exists in Writer " + name);
         }
 
-        QueryResult results = influxQuery.get_oldest_channel_sample(name);
+        QueryResult results = influxQuery.get_newest_meta_datum(name, null);
         if (InfluxDBResults.getValueCount(results) > 0)
         {
             throw new Exception("Channel already exists in Database " + name);
@@ -203,48 +213,94 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     public void addSample(final WriteChannel channel, final VType sample) throws Exception
     {
         final InfluxDBWriteChannel influxdb_channel = (InfluxDBWriteChannel) channel;
-        writeMetaData(influxdb_channel, sample);
-        batchSample(influxdb_channel, sample);
+        final StoreAs storeas = MetaTypes.writeVtypeAs(sample);
+        final Instant stamp = VTypeHelper.getTimestamp(sample);
+
+        writeMetaData(influxdb_channel, stamp, sample, storeas);
+        batchSample(influxdb_channel, stamp, sample, storeas);
     }
 
     /** Write meta data if it was never written or has changed
      *  @param channel Channel for which to write the meta data
      *  @param sample Sample that may have meta data to write
      */
-    private void writeMetaData(final InfluxDBWriteChannel channel, final VType sample) throws Exception
+    private void writeMetaData(final InfluxDBWriteChannel channel, final Instant stamp, final VType sample, final StoreAs storeas) throws Exception
     {
-        // Note that Strings have no meta data. But we don't know at this point
-        // if it's really a string channel, or of this is just a special
-        // string value like "disconnected".
-        // In order to not delete any existing meta data,
-        // we just do nothing for strings
-
-        if (sample instanceof Display)
+        switch(storeas)
         {
-            final Display display = (Display)sample;
-            if (MetaDataHelper.equals(display, channel.getMetadata()))
-                return;
-
-            //            // Clear enumerated meta data, replace numeric
-            //            EnumMetaDataHelper.delete(influxdb, sql, channel);
-            //            NumericMetaDataHelper.delete(influxdb, sql, channel);
-            //            NumericMetaDataHelper.insert(influxdb, sql, channel, display);
-            //            influxdb.getConnection().commit();
-            //            channel.setMetaData(display);
-        }
-        else if (sample instanceof VEnum)
+        case ARCHIVE_DOUBLE :
+        case ARCHIVE_LONG :
+        case ARCHIVE_DOUBLE_ARRAY :
+        case ARCHIVE_LONG_ARRAY :
         {
-            final List<String> labels = ((VEnum)sample).getLabels();
-            if (MetaDataHelper.equals(labels, channel.getMetadata()))
-                return;
-
-            //            // Clear numeric meta data, set enumerated in RDB
-            //            NumericMetaDataHelper.delete(influxdb, sql, channel);
-            //            EnumMetaDataHelper.delete(influxdb, sql, channel);
-            //            EnumMetaDataHelper.insert(influxdb, sql, channel, labels);
-            //            influxdb.getConnection().commit();
-            //            channel.setMetaData(labels);
+            if (sample instanceof Display)
+            {
+                final Display display = (Display)sample;
+                if ((channel.getStorageType() == storeas) && (MetaDataHelper.equals(display, channel.getMetadata())))
+                    return;
+                Point point = MetaTypes.toDisplayMetaPoint(display, channel.getName(), stamp, storeas);
+                batchSets.getChannelMetaPoints(channel.getName()).point(point);
+                channel.setMetaData(display, storeas);
+            }
+            else {
+                throw new Exception ("Cannot determine meta data object for " + storeas.name() + " with sample type " + sample.getClass().getName());
+            }
         }
+        break;
+        case ARCHIVE_ENUM :
+        {
+            if (sample instanceof VEnum)
+            {
+                final List<String> labels = ((VEnum)sample).getLabels();
+                if ((channel.getStorageType() == storeas) && (MetaDataHelper.equals(labels, channel.getMetadata())))
+                    return;
+                Point point = MetaTypes.toEnumMetaPoint(labels, channel.getName(), stamp, storeas);
+                batchSets.getChannelMetaPoints(channel.getName()).point(point);
+                channel.setMetaData(labels, storeas);
+            }
+            else {
+                throw new Exception ("Cannot determine meta data object for " + storeas.name() + " with sample type " + sample.getClass().getName());
+            }
+        }
+        break;
+        case ARCHIVE_STRING :
+        case ARCHIVE_UNKNOWN :
+            if ((channel.getStorageType() == storeas) && (channel.getMetadata() == null))
+                return;
+            Point point = MetaTypes.toNullMetaPoint(channel.getName(), stamp, storeas);
+            batchSets.getChannelMetaPoints(channel.getName()).point(point);
+            channel.setMetaData(null, storeas);
+            break;
+        default:
+            throw new Exception ("Sample generated unhandled meta store type: " + storeas.name());
+        }
+
+        //        if (sample instanceof Display)
+        //        {
+        //            final Display display = (Display)sample;
+        //            if (MetaDataHelper.equals(display, channel.getMetadata()))
+        //                return;
+        //
+        //            //            // Clear enumerated meta data, replace numeric
+        //            //            EnumMetaDataHelper.delete(influxdb, sql, channel);
+        //            //            NumericMetaDataHelper.delete(influxdb, sql, channel);
+        //            //            NumericMetaDataHelper.insert(influxdb, sql, channel, display);
+        //            //            influxdb.getConnection().commit();
+        //            //            channel.setMetaData(display);
+        //        }
+        //        else if (sample instanceof VEnum)
+        //        {
+        //            final List<String> labels = ((VEnum)sample).getLabels();
+        //            if (MetaDataHelper.equals(labels, channel.getMetadata()))
+        //                return;
+        //
+        //            //            // Clear numeric meta data, set enumerated in RDB
+        //            //            NumericMetaDataHelper.delete(influxdb, sql, channel);
+        //            //            EnumMetaDataHelper.delete(influxdb, sql, channel);
+        //            //            EnumMetaDataHelper.insert(influxdb, sql, channel, labels);
+        //            //            influxdb.getConnection().commit();
+        //            //            channel.setMetaData(labels);
+        //        }
     }
 
     /** Perform 'batched' insert for sample.
@@ -253,13 +309,11 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
      *  @param sample Sample to insert
      *  @throws Exception on error
      */
-    private void batchSample(final InfluxDBWriteChannel channel, final VType sample) throws Exception
+    private void batchSample(final InfluxDBWriteChannel channel, final Instant stamp, final VType sample, final StoreAs storeas) throws Exception
     {
-        final Instant stamp = VTypeHelper.getTimestamp(sample);
         final String severity = VTypeHelper.getSeverity(sample).toString();
         final String status = VTypeHelper.getMessage(sample);
 
-        final StoreAs storeas = MetaTypes.writeVtypeAs(sample);
 
         //        final Timestamp stamp = TimestampHelper.toSQLTimestamp(VTypeHelper.getTimestamp(sample));
         //        final int severity = severities.findOrCreate(VTypeHelper.getSeverity(sample));
@@ -380,7 +434,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             }
         }
 
-        batchSets.getChannelPoints(channel.getName()).point(point.build());
+        batchSets.getChannelSamplePoints(channel.getName()).point(point.build());
     }
 
     /** Helper for batchSample: Add long sample to batch.  */
@@ -395,7 +449,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
                 .addField("long.0", num).
                 build();
 
-        batchSets.getChannelPoints(channel.getName()).point(point);
+        batchSets.getChannelSamplePoints(channel.getName()).point(point);
     }
 
 
@@ -418,7 +472,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
                 .addField("string.0", txt).
                 build();
 
-        batchSets.getChannelPoints(channel.getName()).point(point);
+        batchSets.getChannelSamplePoints(channel.getName()).point(point);
     }
 
     /** {@inheritDoc}
@@ -427,7 +481,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     @Override
     public void flush() throws Exception
     {
-        for (String dbName : batchSets.getDBNames())
+        Set<String> dbNames = batchSets.getDBNames();
+        for (String dbName : dbNames)
         {
             BatchPoints batchPoints = batchSets.getDBPoints(dbName);
             try
@@ -438,7 +493,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             {
                 throw new Exception("Write of points failed " + e.getMessage(), e);
             }
-            batchSets.removeDBPoints(dbName);
+            //TODO: Creates concurrent modification errors? Why?
+            //batchSets.removeDBPoints(dbName);
         }
         batchSets.clear();
     }

@@ -8,10 +8,11 @@ Bundle-Description: Archive InfluxDB support library
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.help,
  org.csstudio.security;bundle-version="1.0.0",
- org.apache.commons.lang3;bundle-version="3.5.0"
+ org.apache.commons.lang3;bundle-version="3.5.0",
+ org.diirt.util;bundle-version="3.1.6",
+ org.csstudio.archive.vtype;bundle-version="2.0.0",
+ org.diirt.vtype;bundle-version="3.1.6"
 Bundle-ActivationPolicy: lazy
 Bundle-ClassPath: .
 Export-Package: org.csstudio.archive.influxdb
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
-Import-Package: org.csstudio.archive.vtype,
- org.diirt.vtype;version="3.1.6"

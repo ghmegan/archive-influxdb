@@ -17,7 +17,7 @@ public class InfluxDBQueries
 
     public static QueryResult makeQuery(final InfluxDB influxdb, final String stmt, final String dbName)
     {
-        //System.out.println("Query: " + stmt);
+        System.out.println("Query: " + stmt);
         return influxdb.query(new Query(stmt, dbName));
     }
 
@@ -38,7 +38,7 @@ public class InfluxDBQueries
     public static String get_channel_points(final String select_what, final String channel_name, final Instant starttime, final Instant endtime, final Integer limit)
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("SELECT ").append(select_what).append(" from ").append(channel_name).append(" ORDER BY time");
+        sb.append("SELECT ").append(select_what).append(" from ").append(channel_name);
         if (starttime != null)
         {
             sb.append(" WHERE time >= ").append(InfluxDBUtil.toNano(starttime).toString());
@@ -47,6 +47,7 @@ public class InfluxDBQueries
         {
             sb.append(" WHERE time <= ").append(InfluxDBUtil.toNano(endtime).toString());
         }
+        sb.append(" ORDER BY time ");
         if (limit != null)
         {
             if (limit > 0)
@@ -81,7 +82,7 @@ public class InfluxDBQueries
                 InfluxDBUtil.getDataDBName(channel_name));
     }
 
-    public static QueryResult get_newest_meta_data(final InfluxDB influxdb, final String channel_name, Instant endtime)
+    public QueryResult get_newest_meta_datum(final String channel_name, Instant endtime)
     {
         return makeQuery(
                 influxdb,
@@ -89,11 +90,11 @@ public class InfluxDBQueries
                 InfluxDBUtil.getMetaDBName(channel_name));
     }
 
-    public static QueryResult get_all_meta_data(final InfluxDB influxdb, final String channel_name)
+    public QueryResult get_all_meta_data(final String channel_name)
     {
         return makeQuery(
                 influxdb,
-                get_channel_points("*", channel_name, null, null, -1),
+                get_channel_points("*", channel_name, null, null, null),
                 InfluxDBUtil.getMetaDBName(channel_name));
     }
 
