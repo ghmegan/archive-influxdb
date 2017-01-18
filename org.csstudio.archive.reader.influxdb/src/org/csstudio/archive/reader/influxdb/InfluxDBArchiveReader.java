@@ -8,6 +8,9 @@
 package org.csstudio.archive.reader.influxdb;
 
 import org.influxdb.InfluxDB;
+import org.influxdb.dto.QueryResult;
+import org.influxdb.dto.QueryResult.Series;
+
 //import java.sql.Connection;
 //import java.sql.PreparedStatement;
 //import java.sql.ResultSet;
@@ -15,7 +18,12 @@ import org.influxdb.InfluxDB;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import org.csstudio.archive.influxdb.InfluxDBRead;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.csstudio.archive.influxdb.InfluxDBQueries;
+import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
@@ -39,7 +47,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
     //final private int timeout;
     //
     final private ConnectionCache.Entry influxdb;
-    final private InfluxDBRead influxQuery;
+    final private InfluxDBQueries influxQuery;
 
     /** Map of status IDs to Status strings */
     // don't need this for influx, just store the status strings as tags
@@ -83,7 +91,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
         //TODO: Set timeouts? Other optimization?
         //timeout = RDBArchivePreferences.getSQLTimeoutSecs();
         influxdb = ConnectionCache.get(url, user, password);
-        influxQuery = new InfluxDBRead("*");
+        influxQuery = new InfluxDBQueries(influxdb.getConnection());
 
         //stati = getStatusValues();
         //severities = getSeverityValues();
@@ -171,7 +179,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
     }
 
     /** @return Query statements */
-    InfluxDBRead getQuery()
+    InfluxDBQueries getQueries()
     {
         return influxQuery;
     }
@@ -249,13 +257,14 @@ public class InfluxDBArchiveReader implements ArchiveReader
         return pattern;
     }
 
+    //TODO: Need more testing of glob to regex. I am not confident.
     /** {@inheritDoc} */
     @Override
     public String[] getNamesByPattern(final int key, final String glob_pattern) throws Exception
     {
         // Escape regex special chars
         String rx_pattern = glob_pattern.replace("\\", "\\\\");
-        rx_pattern = escape_specials(".^$", rx_pattern);
+        rx_pattern = escape_specials(".^$(){}:+|[]", rx_pattern);
 
         rx_pattern = rx_pattern.replace("*", ".*");
         rx_pattern = rx_pattern.replace('?', '.');
@@ -272,37 +281,33 @@ public class InfluxDBArchiveReader implements ArchiveReader
 
     /** Perform channel search by name pattern
      *  @param pattern Pattern, either SQL or Reg. Ex.
-     *  @param sql_query SQL query that can handle the pattern
      *  @return Channel names
      *  @throws Exception on error
      */
     private String[] perform_search(final String pattern) throws Exception
     {
+        StringBuilder sb = new StringBuilder();
+        sb.append("/^").append(pattern).append("$/");
+
         final ArrayList<String> names = new ArrayList<String>();
-        //        final PreparedStatement statement = rdb.getConnection().prepareStatement(sql_query);
-        //        addForCancellation(statement);
-        //        try
-        //        {
-        //            statement.setString(1, pattern);
-        //            final ResultSet result = statement.executeQuery();
-        //            while (result.next())
-        //                names.add(result.getString(1));
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            if (ex.getMessage().startsWith("ORA-01013") || ex.getMessage().startsWith("ERROR: canceling statement due to user request"))
-        //            {
-        //                // Ignore Oracle/PostgreSQL error: user requested cancel of current operation
-        //            }
-        //            else
-        //                throw ex;
-        //        }
-        //        finally
-        //        {
-        //            removeFromCancellation(statement);
-        //            statement.close();
-        //        }
-        return names.toArray(new String[names.size()]);
+        final QueryResult results = influxQuery.get_newest_meta_datum(sb.toString(), null);
+
+        if (results.hasError())
+        {
+            throw new Exception("Error when searching for pattern '" + pattern + "' : " + results.getError());
+        }
+
+        //System.out.println(InfluxDBResults.toString(results));
+
+        final List<Series> series = InfluxDBResults.getSeries(results);
+        Set<String> measurements = new HashSet<String>();
+
+        for (Series S : series)
+        {
+            measurements.add(S.getName());
+        }
+
+        return measurements.toArray(new String[measurements.size()]);
     }
 
     /** {@inheritDoc} */

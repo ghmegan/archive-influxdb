@@ -62,6 +62,22 @@ public class InfluxDBResults
         return series.getValues().size();
     }
 
+    public static List<Series> getSeries(QueryResult results)
+    {
+        List<Series> ret = new ArrayList<Series>();
+        if (getResultCount(results) > 0)
+        {
+            for (Result result : results.getResults() )
+            {
+                if (getSeriesCount(result) > 0)
+                {
+                    ret.addAll(result.getSeries());
+                }
+            }
+        }
+        return ret;
+    }
+
     public static int getValueCount(QueryResult results)
     {
         int ret = 0;
