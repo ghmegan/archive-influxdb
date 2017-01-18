@@ -30,11 +30,10 @@ public class InfluxDBQueries
         return influxdb.query(new Query(stmt, dbName));
     }
 
-    private void makeChunkQuery(int chunkSize2, Consumer<QueryResult> consumer,
-            InfluxDB influxdb2, String get_channel_points, String dataDBName) throws Exception
+    public static void makeChunkQuery(int chunkSize, Consumer<QueryResult> consumer,
+            InfluxDB influxdb, String stmt, String dbName) throws Exception
     {
-        // TODO Need version 2.6 for chunking
-        throw new Exception ("Chunk support not added yet");
+        influxdb.query(new Query(stmt, dbName), chunkSize, consumer);
     }
 
 
@@ -99,8 +98,8 @@ public class InfluxDBQueries
     }
 
 
-    public void chunk_get_channel_samples(final int chunkSize, Consumer<QueryResult> consumer,
-            final String channel_name, final Instant starttime, final Instant endtime, Long num) throws Exception
+    public void chunk_get_channel_samples(final int chunkSize,
+            final String channel_name, final Instant starttime, final Instant endtime, Long num, Consumer<QueryResult> consumer) throws Exception
     {
         makeChunkQuery(
                 chunkSize, consumer, influxdb,

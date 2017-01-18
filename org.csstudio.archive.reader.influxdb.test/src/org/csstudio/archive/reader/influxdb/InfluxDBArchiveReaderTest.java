@@ -16,8 +16,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.csstudio.apputil.time.BenchmarkTimer;
+import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
@@ -27,9 +32,12 @@ import org.diirt.util.time.TimeDuration;
 import org.diirt.vtype.Display;
 import org.diirt.vtype.VType;
 import org.diirt.vtype.ValueUtil;
+import org.influxdb.dto.QueryResult;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.lang.Thread;
 
 /** JUnit test of the RDBArchiveServer
  *  <p>
@@ -162,6 +170,35 @@ public class InfluxDBArchiveReaderTest
             System.out.println(name);
         assertTrue(names.length > 0);
     }
+
+
+    @Test
+    public void testChunkQuery() throws Exception
+    {
+        if (reader == null)
+            return;
+
+        Thread.sleep(2000L);
+
+        final BlockingQueue<QueryResult> queue = new LinkedBlockingQueue<>();
+
+        reader.getQueries().chunk_get_channel_samples(2, channel_name, null, null, 10L,
+                new Consumer<QueryResult>() {
+            @Override
+            public void accept(QueryResult result) {
+                queue.add(result);
+            }});
+
+        Thread.sleep(2000L);
+
+        QueryResult result = queue.poll(5, TimeUnit.SECONDS);
+        while (result != null)
+        {
+            System.out.println(InfluxDBResults.toString(result));
+            result = queue.poll(5, TimeUnit.SECONDS);
+        }
+    }
+
 
     /** Get raw data for scalar */
     @Test
