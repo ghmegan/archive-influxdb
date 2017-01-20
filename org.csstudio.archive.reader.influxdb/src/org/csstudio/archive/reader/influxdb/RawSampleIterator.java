@@ -7,155 +7,130 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
-//import java.sql.PreparedStatement;
-//import java.sql.ResultSet;
 import java.time.Instant;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.influxdb.InfluxDBUtil;
 //import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
 import org.diirt.vtype.VType;
 import org.influxdb.dto.QueryResult;
+import org.influxdb.dto.QueryResult.Series;
 
 /** Value Iterator that reads from the SAMPLE table.
  *  @author Kay Kasemir
- *  @author Lana Abadie (PostgreSQL)
+ *  @author Megan Grodowitz (InfluxDB)
  */
 public class RawSampleIterator extends AbstractInfluxDBValueIterator
 {
-    /** SELECT ... for the start .. end samples. */
-    //private PreparedStatement sel_samples = null;
+    /** Queue of result chunks of the sample query */
+    final BlockingQueue<QueryResult> sample_queue = new LinkedBlockingQueue<>();
 
-    /** Result of <code>sel_samples</code> */
-    private QueryResult result_set = null;
-
-    private boolean concurrency = false;
+    /** Queue of result chunks of the metadata query */
+    final BlockingQueue<QueryResult> metadata_queue = new LinkedBlockingQueue<>();
 
     /** 'Current' value that <code>next()</code> will return,
      *  or <code>null</code>
      */
     private VType value = null;
+
+    private final ChunkReader samples;
+
+    static final private int sample_chunk_size = 10;
+    static final private int metadata_chunk_size = 2;
+
     /** Initialize
      *  @param reader RDBArchiveReader
-     *  @param channel_id ID of channel
+     *  @param channel_name ID of channel
      *  @param start Start time
      *  @param end End time
      *  @throws Exception on error
      */
     public RawSampleIterator(final InfluxDBArchiveReader reader,
-            final int channel_id, final Instant start,
-            final Instant end, boolean concurrency) throws Exception
-    {
-        super(reader, channel_id);
-        this.concurrency = concurrency;
-        try
-        {
-            determineInitialSample(start, end);
-        }
-        catch (Exception ex)
-        {
-            if (! InfluxDBArchiveReader.isCancellation(ex))
-                throw ex;
-            // Else: Not a real error; return empty iterator
-            value = null;
-        }
-    }
-    /** Initialize
-     *  @param reader RDBArchiveReader
-     *  @param channel_id ID of channel
-     *  @param start Start time
-     *  @param end End time
-     *  @throws Exception on error
-     */
-    public RawSampleIterator(final InfluxDBArchiveReader reader,
-            final int channel_id, final Instant start,
+            final String channel_name, final Instant start,
             final Instant end) throws Exception
     {
-        this(reader, channel_id, start, end, false);
-    }
+        super(reader, channel_name);
+        Instant sample_endtime, metadata_endtime;
+        QueryResult results = null;
 
-    /** Get the samples: <code>result_set</code> will have the samples,
-     *  <code>value</code> will contain the first sample
-     *  @param start Start time
-     *  @param end End time
-     *  @throws Exception on error, including cancellation
-     */
-    private void determineInitialSample(final Instant start, final Instant end) throws Exception
-    {
-        //        java.sql.Timestamp start_stamp = TimestampHelper.toSQLTimestamp(start);
-        //        final java.sql.Timestamp end_stamp = TimestampHelper.toSQLTimestamp(end);
-        //
-        //        // Get time of initial sample
-        //        final PreparedStatement statement =
-        //                reader.getConnection().prepareStatement(reader.getQuery().sample_sel_initial_time);
-        //        reader.addForCancellation(statement);
-        //        try
-        //        {
-        //            statement.setInt(1, channel_id);
-        //            statement.setTimestamp(2, start_stamp);
-        //            if (statement.getParameterMetaData().getParameterCount() == 3)
-        //                statement.setTimestamp(3, end_stamp);
-        //            final ResultSet result = statement.executeQuery();
-        //            if (result.next())
-        //            {
-        //                // System.out.print("Start time corrected from " + start_stamp);
-        //                start_stamp = result.getTimestamp(1);
-        //                // Oracle has nanoseconds in TIMESTAMP, MySQL in separate column
-        //                if (reader.getDialect() == Dialect.MySQL || reader.getDialect() == Dialect.PostgreSQL)
-        //                    start_stamp.setNanos(result.getInt(2));
-        //                // System.out.println(" to " + start_stamp);
-        //            }
-        //        }
-        //        finally
-        //        {
-        //            reader.removeFromCancellation(statement);
-        //            statement.close();
-        //        }
-        //
-        //        boolean autoCommit = reader.getConnection().getAutoCommit();
-        //        // Disable auto-commit to determine sample with PostgreSQL when fetch direction is FETCH_FORWARD
-        //        if (reader.getDialect() == Dialect.PostgreSQL && autoCommit) {
-        //            reader.getConnection().setAutoCommit(false);
-        //        }
-        //
-        //        // Fetch the samples
-        //        if (reader.useArrayBlob()) {
-        //            if (concurrency && reader.getDialect() == Dialect.PostgreSQL) {
-        //                sel_samples = reader.getConnection().prepareStatement(
-        //                        reader.getQuery().sample_sel_by_id_start_end_with_blob, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        //            } else {
-        //                sel_samples = reader.getConnection().prepareStatement(
-        //                        reader.getQuery().sample_sel_by_id_start_end_with_blob);
-        //            }
-        //        } else {
-        //            if (concurrency && reader.getDialect() == Dialect.PostgreSQL) {
-        //                sel_samples = reader.getConnection().prepareStatement(
-        //                        reader.getQuery().sample_sel_by_id_start_end, ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        //            } else {
-        //                sel_samples = reader.getConnection().prepareStatement(
-        //                        reader.getQuery().sample_sel_by_id_start_end);
-        //            }
-        //        }
-        //        sel_samples.setFetchDirection(ResultSet.FETCH_FORWARD);
-        //
-        //        // Test w/ ~170000 raw samples:
-        //        //     10  17   seconds
-        //        //    100   6   seconds
-        //        //   1000   4.x seconds
-        //        //  10000   4.x seconds
-        //        // 100000   4.x seconds
-        //        // So default is bad. 100 or 1000 are good.
-        //        // Bigger numbers don't help much in repeated tests, but
-        //        // just to be on the safe side, use a bigger number.
-        //        sel_samples.setFetchSize(Preferences.getFetchSize());
-        //
-        //        reader.addForCancellation(sel_samples);
-        //        sel_samples.setInt(1, channel_id);
-        //        sel_samples.setTimestamp(2, start_stamp);
-        //        sel_samples.setTimestamp(3, end_stamp);
-        //        result_set = sel_samples.executeQuery();
-        //        // Get first sample
-        //        if (result_set.next())
-        //            value = decodeSampleTableValue(result_set, true);
-        //        // else leave value null to indicate end of samples
+        try
+        {
+            //Find the last timestamp of the sample in this timerange
+            results = reader.getQueries().get_newest_meta_data(channel_name, null, end, 1L);
+        }
+        catch (Exception e)
+        {
+            throw new Exception ("Error getting last metadata in timerange ", e);
+        }
+
+        Logger logger = Activator.getLogger();
+        logger.log(Level.WARNING, "Results from metadata query: {0}", InfluxDBResults.toString(results));
+
+        try
+        {
+            final Series series0 = results.getResults().get(0).getSeries().get(0);
+            final String ts = (String) InfluxDBResults.getValue(series0, "time", 0);
+            metadata_endtime = InfluxDBUtil.fromInfluxDBTimeFormat(ts);
+        }
+        catch (Exception e)
+        {
+            throw new Exception("Could not get timestamp of any metadata for " + channel_name + " before time " + end, e);
+        }
+
+        try
+        {
+            results = reader.getQueries().get_newest_channel_samples(channel_name, start, end, 1L);
+        }
+        catch (Exception e)
+        {
+            throw new Exception ("Error getting last metadata in timerange ", e);
+        }
+
+        Activator.getLogger().log(Level.WARNING, "Results from sample query: {0}", InfluxDBResults.toString(results));
+        if (InfluxDBResults.getValueCount(results) < 1)
+        {
+            samples = null;
+            close();
+            return;
+        }
+
+        try
+        {
+            final Series series0 = results.getResults().get(0).getSeries().get(0);
+            final String ts = (String) InfluxDBResults.getValue(series0, "time", 0);
+            sample_endtime = InfluxDBUtil.fromInfluxDBTimeFormat(ts);
+        }
+        catch (Exception e)
+        {
+            throw new Exception ("Error getting last sample in timerange ", e);
+        }
+
+
+        reader.getQueries().chunk_get_channel_samples(sample_chunk_size, channel_name, start, end, null,
+                new Consumer<QueryResult>() {
+            @Override
+            public void accept(QueryResult result) {
+                sample_queue.add(result);
+            }});
+
+        reader.getQueries().chunk_get_channel_metadata(metadata_chunk_size, channel_name, start, end, null,
+                new Consumer<QueryResult>() {
+            @Override
+            public void accept(QueryResult result) {
+                metadata_queue.add(result);
+            }});
+
+        samples = new ChunkReader(sample_queue, sample_endtime, metadata_queue, metadata_endtime, reader.getTimeout());
+
+        if (samples.step())
+            value = samples.decodeSampleValue();
+        else
+            close();
     }
 
     /** {@inheritDoc} */
@@ -165,32 +140,25 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
         return value != null;
     }
 
+
     /** {@inheritDoc} */
     @Override
     @SuppressWarnings("nls")
     public VType next() throws Exception
     {
         // This should not happen...
-        if (result_set == null)
-            throw new Exception("RawSampleIterator.next(" + channel_id + ") called after end");
+        if (value == null)
+            throw new Exception("RawSampleIterator.next(" + channel_name + ") called after end");
 
         // Remember value to return...
         final VType result = value;
+
         // ... and prepare next value
-        //        try
-        //        {
-        //            if (result_set.next())
-        //                value = decodeSampleTableValue(result_set, true);
-        //            else
-        //                close();
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            close();
-        //            if (! InfluxDBArchiveReader.isCancellation(ex))
-        //                throw ex;
-        //            // Else: Not a real error; return empty iterator
-        //        }
+        if (samples.step())
+            value = samples.decodeSampleValue();
+        else
+            close();
+
         return result;
     }
 
@@ -202,42 +170,5 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     {
         super.close();
         value = null;
-        //        if (result_set != null)
-        //        {
-        //            try
-        //            {
-        //                result_set.close();
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                // Ignore
-        //            }
-        //            result_set = null;
-        //        }
-        //        if (sel_samples != null)
-        //        {
-        //            reader.removeFromCancellation(sel_samples);
-        //            try
-        //            {
-        //                sel_samples.close();
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                // Ignore
-        //            }
-        //            sel_samples = null;
-        //        }
-        //        if (reader.getDialect() == Dialect.PostgreSQL) {
-        //            // Restore default auto-commit on result set close
-        //            try {
-        //                reader.getConnection().setAutoCommit(true);
-        //            } catch (Exception e) {
-        //                // Ignore
-        //            }
-        //        }
-    }
-
-    public void setConcurrency(boolean concurrency) {
-        this.concurrency = concurrency;
     }
 }

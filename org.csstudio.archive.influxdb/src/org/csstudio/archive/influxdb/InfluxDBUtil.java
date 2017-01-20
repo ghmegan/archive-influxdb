@@ -3,6 +3,9 @@ package org.csstudio.archive.influxdb;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -34,6 +37,36 @@ public class InfluxDBUtil
             Activator.getLogger().log(Level.WARNING, "Could not convert instant to long time stamp!", e);
         }
         return ret.longValue();
+    }
+
+    /**
+     * convert a unix epoch time to timestamp used by influxdb.
+     * this can then be used in query expressions against influxdb's time column like so:
+     * influxDB.query(new Query("SELECT * FROM some_measurement WHERE time >= '"
+     *                          + toInfluxDBTimeFormat(timeStart) + "'", some_database))
+     * influxdb time format example: 2016-10-31T06:52:20.020Z
+     *
+     * @param time timestamp to use, in unix epoch time
+     * @return influxdb compatible date-tome string
+     */
+    public static String toInfluxDBTimeFormat(final Instant time) {
+        return DateTimeFormatter.ISO_INSTANT.format(ZonedDateTime.ofInstant(time, ZoneId.of("UTC").normalized()));
+    }
+
+    public static Instant fromInfluxDBTimeFormat(final String timestamp)
+    {
+        return Instant.from(DateTimeFormatter.ISO_INSTANT.parse(timestamp));
+    }
+
+    public static Instant fromInfluxDBTimeFormat(final Object timestamp) throws Exception
+    {
+        if (timestamp == null)
+            throw new Exception ("Cannot convert null to instant timestamp");
+
+        if (timestamp instanceof String)
+            return fromInfluxDBTimeFormat((String)timestamp);
+
+        throw new Exception ("Cannot convert nonstring object to instant : " + timestamp.getClass().getName());
     }
 
     public static String getDataDBName(final String channel_name)

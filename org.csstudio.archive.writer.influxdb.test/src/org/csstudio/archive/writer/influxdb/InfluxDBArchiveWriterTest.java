@@ -130,7 +130,7 @@ public class InfluxDBArchiveWriterTest
     private void printSomePoints(final String name)
     {
         System.out.println(InfluxDBResults.toString(writer.getQueries().get_all_meta_data(name)));
-        System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_samples(name, 8L)));
+        System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_samples(name, null, null, 8L)));
 
     }
 

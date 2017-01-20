@@ -78,6 +78,28 @@ public class InfluxDBResults
         return ret;
     }
 
+    public static List<Series> getNonEmptySeries(QueryResult results)
+    {
+        List<Series> ret = new ArrayList<Series>();
+        if (getResultCount(results) > 0)
+        {
+            for (Result result : results.getResults() )
+            {
+                if (getSeriesCount(result) > 0)
+                {
+                    for (Series series : result.getSeries())
+                    {
+                        if (getValueCount(series) > 0)
+                        {
+                            ret.add(series);
+                        }
+                    }
+                }
+            }
+        }
+        return ret;
+    }
+
     public static int getValueCount(QueryResult results)
     {
         int ret = 0;
@@ -97,17 +119,34 @@ public class InfluxDBResults
         return ret;
     }
 
-    public static TableBuilder makeSeriesTable(Series series, int col_count, int val_count)
+    public static Object getValue(Series series, final String colname, final int validx)
+    {
+        if (series == null)
+            return null;
+
+        final List<String> cols = series.getColumns();
+        if (cols == null)
+            return null;
+
+        final List<List<Object>> vals = series.getValues();
+        if (vals == null)
+            return null;
+
+        return vals.get(validx).get(cols.indexOf(colname));
+    }
+
+
+    public static TableBuilder makeSeriesTable(List<String> cols, List<List<Object>> all_vals)
     {
         TableBuilder tb = new TableBuilder();
         ArrayList<String> r0 = new ArrayList<String>();
         ArrayList<String> r1 = new ArrayList<String>();
 
-        if (col_count > 0)
+        if (cols != null)
         {
             r0.clear();
             r1.clear();
-            for (String col : series.getColumns())
+            for (String col : cols)
             {
                 r0.add(col);
                 r1.add(StringUtils.repeat('-', col.length()));
@@ -116,9 +155,9 @@ public class InfluxDBResults
             tb.addRow(r1.toArray());
         }
 
-        if (val_count > 0)
+        if (all_vals != null)
         {
-            for (List<Object> vals : series.getValues())
+            for (List<Object> vals : all_vals)
             {
                 r0.clear();
                 //r1.clear();
@@ -193,7 +232,7 @@ public class InfluxDBResults
                         }
 
                         buf.append("    +-\n");
-                        final TableBuilder tb  = makeSeriesTable(series, col_count, val_count);
+                        final TableBuilder tb  = makeSeriesTable(series.getColumns(), series.getValues());
                         tb.setIndent("    ");
                         buf.append(tb.toString());
                     }

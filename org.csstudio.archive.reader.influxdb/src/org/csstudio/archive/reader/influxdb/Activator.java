@@ -7,6 +7,7 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.core.runtime.Plugin;
@@ -40,6 +41,7 @@ public class Activator extends Plugin
     /** @return Logger for plugin ID */
     public static Logger getLogger()
     {
-        return Logger.getLogger(Activator.ID);
+        Logger.getLogger(ID).setLevel(Level.FINEST);
+        return Logger.getLogger(ID);
     }
 }

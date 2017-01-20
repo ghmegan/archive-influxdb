@@ -20,8 +20,7 @@ public class InfluxDBArchivePreferences
     public static final String URL = "url";
     public static final String USER = "user";
     public static final String PASSWORD = "password";
-    //TODO: How to use timeout with Influx? Possible with Java interface?
-    //public static final String TIMEOUT = "timeout";
+    public static final String TIMEOUT = "timeout_secs";
 
     //TODO: Multiple databases?
     public static final String DBNAME = "channel_data";
@@ -45,14 +44,14 @@ public class InfluxDBArchivePreferences
         return SecurePreferences.get(Activator.ID, PASSWORD, null);
     }
 
-    //    /** @return Timeout in seconds */
-    //    public static int getTimeoutSecs()
-    //    {
-    //        final IPreferencesService prefs = Platform.getPreferencesService();
-    //        if (prefs == null)
-    //            return 0;
-    //        return prefs.getInt(Activator.ID, TIMEOUT, 0, null);
-    //    }
+    /** @return Timeout in seconds */
+    public static int getChunkTimeoutSecs()
+    {
+        final IPreferencesService prefs = Platform.getPreferencesService();
+        if (prefs == null)
+            return 0;
+        return prefs.getInt(Activator.ID, TIMEOUT, 0, null);
+    }
 
     /** Get string preference
      *  @param key Preference key

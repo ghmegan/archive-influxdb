@@ -8,15 +8,11 @@
 package org.csstudio.archive.reader.influxdb;
 
 import java.time.Instant;
-import java.util.List;
-
 import org.csstudio.archive.reader.ValueIterator;
 import org.csstudio.archive.vtype.ArchiveVString;
-import org.diirt.util.text.NumberFormats;
 import org.diirt.vtype.AlarmSeverity;
 import org.diirt.vtype.Display;
 import org.diirt.vtype.VType;
-import org.diirt.vtype.ValueFactory;
 import org.influxdb.dto.QueryResult;
 
 /** Base for ValueIterators that read from the RDB
@@ -27,10 +23,10 @@ import org.influxdb.dto.QueryResult;
 abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
 {
     final protected InfluxDBArchiveReader reader;
-    final protected int channel_id;
+    final protected String channel_name;
 
-    protected Display display = null;
-    protected List<String> labels = null;
+    //    protected Display display = null;
+    //    protected List<String> labels = null;
 
     /** SELECT ... for the array samples. */
     //private PreparedStatement sel_array_samples = null;
@@ -48,33 +44,33 @@ abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
      *  To remain compatible with old data, we still assume
      *  there are array values until we know otherwise.
      */
-    protected boolean is_an_array = true;
+    //protected boolean is_an_array = true;
 
 
     /** @param reader RDBArchiveReader
-     *  @param channel_id ID of channel
+     *  @param channel_name ID of channel
      *  @throws Exception on error
      */
     AbstractInfluxDBValueIterator(final InfluxDBArchiveReader reader,
-            final int channel_id) throws Exception
+            final String channel_name) throws Exception
     {
         this.reader = reader;
-        this.channel_id = channel_id;
-        try
-        {
-            this.display = determineDisplay();
-            this.labels = determineLabels();
-        }
-        catch (final Exception ex)
-        {
-            // Set iterator to empty
-            close();
-            if (! InfluxDBArchiveReader.isCancellation(ex))
-                throw ex;
-            // Else: Not a real error, return empty iterator
-        }
-        if (labels == null  &&  display == null)
-            display = ValueFactory.newDisplay(0.0, 0.0, 0.0, "", NumberFormats.format(0), 0.0, 0.0, 10.0, 0.0, 10.0);
+        this.channel_name = channel_name;
+        //        try
+        //        {
+        //            this.display = determineDisplay();
+        //            this.labels = determineLabels();
+        //        }
+        //        catch (final Exception ex)
+        //        {
+        //            // Set iterator to empty
+        //            close();
+        //            if (! InfluxDBArchiveReader.isCancellation(ex))
+        //                throw ex;
+        //            // Else: Not a real error, return empty iterator
+        //        }
+        //        if (labels == null  &&  display == null)
+        //            display = ValueFactory.newDisplay(0.0, 0.0, 0.0, "", NumberFormats.format(0), 0.0, 0.0, 10.0, 0.0, 10.0);
     }
 
     /** @return Numeric meta data information for the channel or <code>null</code>
@@ -114,44 +110,46 @@ abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
         return null;
     }
 
-    /** @return Numeric meta data information for the channel or <code>null</code>
-     *  @throws Exception on error
-     */
-    private List<String> determineLabels() throws Exception
-    {
-        //        // Try enumerated meta data
-        //        List<String> labels = null;
-        //        final PreparedStatement statement = reader.getConnection().prepareStatement(
-        //                reader.getQuery().enum_sel_num_val_by_channel);
-        //        try
-        //        {
-        //            statement.setInt(1, channel_id);
-        //            final ResultSet result = statement.executeQuery();
-        //            if (result.next())
-        //            {
-        //                labels = new ArrayList<String>();
-        //                do
-        //                {
-        //                    final int id = result.getInt(1);
-        //                    final String val = result.getString(2);
-        //                    // Expect vals for ids 0, 1, 2, ...
-        //                    if (id != labels.size())
-        //                        throw new Exception("Enum IDs for channel with ID "
-        //                                + channel_id + " not in sequential order");
-        //                    labels.add(val);
-        //                }
-        //                while (result.next());
-        //            }
-        //        }
-        //        finally
-        //        {
-        //            statement.close();
-        //        }
-        // Anything found?
-        if (labels == null  ||  labels.size() <= 0)
-            return null; // Nothing found
-        return labels;
-    }
+    //    /** @return Numeric meta data information for the channel or <code>null</code>
+    //     *  @throws Exception on error
+    //     */
+    //    private List<String> determineLabels() throws Exception
+    //    {
+    //        //        // Try enumerated meta data
+    //        //        List<String> labels = null;
+    //        //        final PreparedStatement statement = reader.getConnection().prepareStatement(
+    //        //                reader.getQuery().enum_sel_num_val_by_channel);
+    //        //        try
+    //        //        {
+    //        //            statement.setInt(1, channel_id);
+    //        //            final ResultSet result = statement.executeQuery();
+    //        //            if (result.next())
+    //        //            {
+    //        //                labels = new ArrayList<String>();
+    //        //                do
+    //        //                {
+    //        //                    final int id = result.getInt(1);
+    //        //                    final String val = result.getString(2);
+    //        //                    // Expect vals for ids 0, 1, 2, ...
+    //        //                    if (id != labels.size())
+    //        //                        throw new Exception("Enum IDs for channel with ID "
+    //        //                                + channel_id + " not in sequential order");
+    //        //                    labels.add(val);
+    //        //                }
+    //        //                while (result.next());
+    //        //            }
+    //        //        }
+    //        //        finally
+    //        //        {
+    //        //            statement.close();
+    //        //        }
+    //        // Anything found?
+    //        if (labels == null  ||  labels.size() <= 0)
+    //            return null; // Nothing found
+    //        return labels;
+    //    }
+
+
 
     /** Extract value from SQL result
      *  @param result ResultSet that must contain contain time, severity, ..., value

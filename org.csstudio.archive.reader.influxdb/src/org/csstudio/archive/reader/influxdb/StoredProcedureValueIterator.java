@@ -42,10 +42,10 @@ public class StoredProcedureValueIterator extends AbstractInfluxDBValueIterator
      */
     public StoredProcedureValueIterator(final InfluxDBArchiveReader reader,
             final String stored_procedure,
-            final int channel_id, final Instant start, final Instant end,
+            final String channel_name, final Instant start, final Instant end,
             final int count) throws Exception
     {
-        super(reader, channel_id);
+        super(reader, channel_name);
         this.stored_procedure = stored_procedure;
         executeProcedure(start, end, count);
     }

@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
@@ -43,21 +44,19 @@ public class InfluxDBArchiveReader implements ArchiveReader
     final private String url;
     final private String user;
     final private int password;
-    /** Timeout [secs] used for some operations that should be 'fast' */
-    //final private int timeout;
+    /** Timeout when waiting for chunks of data */
+    final private int timeout;
     //
     final private ConnectionCache.Entry influxdb;
     final private InfluxDBQueries influxQuery;
 
-    /** Map of status IDs to Status strings */
+    ///** Map of status IDs to Status strings */
     // don't need this for influx, just store the status strings as tags
     //final private HashMap<Integer, String> stati;
 
-    /** Map of severity IDs to Severities */
+    ///** Map of severity IDs to Severities */
     // don't need this for influx, just store severity strings as tags
     //final private HashMap<Integer, AlarmSeverity> severities;
-
-    private boolean concurrency = false;
 
     /** Initialize
      *  @param url Database URL
@@ -88,81 +87,14 @@ public class InfluxDBArchiveReader implements ArchiveReader
         this.url = url;
         this.user = user;
         this.password = (password == null) ? 0 : password.length();
-        //TODO: Set timeouts? Other optimization?
-        //timeout = RDBArchivePreferences.getSQLTimeoutSecs();
+
+        //TODO: other Influx read optimizations?
+        timeout = InfluxDBArchivePreferences.getChunkTimeoutSecs();
         influxdb = ConnectionCache.get(url, user, password);
         influxQuery = new InfluxDBQueries(influxdb.getConnection());
 
-        //stati = getStatusValues();
-        //severities = getSeverityValues();
     }
 
-    //    /** @return Map of all status ID/Text mappings
-    //     *  @throws Exception on error
-    //     */
-    //    private HashMap<Integer, String> getStatusValues() throws Exception
-    //    {
-    //        final HashMap<Integer, String> stati = new HashMap<Integer, String>();
-    //        try
-    //        (
-    //                final Statement statement = rdb.getConnection().createStatement();
-    //                )
-    //        {
-    //            if (timeout > 0)
-    //                statement.setQueryTimeout(timeout);
-    //            statement.setFetchSize(100);
-    //            final ResultSet result = statement.executeQuery(sql.sel_stati);
-    //            while (result.next())
-    //                stati.put(result.getInt(1), result.getString(2));
-    //            return stati;
-    //        }
-    //    }
-
-    //    /** @return Map of all severity ID/AlarmSeverity mappings
-    //     *  @throws Exception on error
-    //     */
-    //    private HashMap<Integer, AlarmSeverity> getSeverityValues() throws Exception
-    //    {
-    //        final HashMap<Integer, AlarmSeverity> severities = new HashMap<Integer, AlarmSeverity>();
-    //        try
-    //        (
-    //                final Statement statement = rdb.getConnection().createStatement();
-    //                )
-    //        {
-    //            if (timeout > 0)
-    //                statement.setQueryTimeout(timeout);
-    //            statement.setFetchSize(100);
-    //            final ResultSet result = statement.executeQuery(sql.sel_severities);
-    //            while (result.next())
-    //            {
-    //                final int id = result.getInt(1);
-    //                final String text = result.getString(2);
-    //                AlarmSeverity severity = null;
-    //                for (AlarmSeverity s : AlarmSeverity.values())
-    //                {
-    //                    if (text.startsWith(s.name()))
-    //                    {
-    //                        severity = s;
-    //                        break;
-    //                    }
-    //                    if    ("OK".equalsIgnoreCase(text) || "".equalsIgnoreCase(text))
-    //                    {
-    //                        severity = AlarmSeverity.NONE;
-    //                        break;
-    //                    }
-    //                }
-    //                if (severity == null)
-    //                {
-    //                    Activator.getLogger().log(Level.FINE,
-    //                            "Undefined severity level {0}", text);
-    //                    severities.put(id, AlarmSeverity.UNDEFINED);
-    //                }
-    //                else
-    //                    severities.put(id, severity);
-    //            }
-    //            return severities;
-    //        }
-    //    }
 
     /** @return InfluxDB connection
      *  @throws Exception on error
@@ -182,6 +114,11 @@ public class InfluxDBArchiveReader implements ArchiveReader
     InfluxDBQueries getQueries()
     {
         return influxQuery;
+    }
+
+    int getTimeout()
+    {
+        return timeout;
     }
 
     //    /** @param status_id Numeric status ID
@@ -290,7 +227,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
         sb.append("/^").append(pattern).append("$/");
 
         final ArrayList<String> names = new ArrayList<String>();
-        final QueryResult results = influxQuery.get_newest_meta_datum(sb.toString(), null);
+        final QueryResult results = influxQuery.get_newest_meta_datum(sb.toString());
 
         if (results.hasError())
         {
@@ -315,21 +252,21 @@ public class InfluxDBArchiveReader implements ArchiveReader
     public ValueIterator getRawValues(final int key, final String name,
             final Instant start, final Instant end) throws UnknownChannelException, Exception
     {
-        final int channel_id = getChannelID(name);
-        return getRawValues(channel_id, start, end);
+        //final int channel_id = getChannelID(name);
+        return getRawValues(name, start, end);
     }
 
     /** Fetch raw samples
-     *  @param channel_id Channel ID in RDB
+     *  @param channel_name Channel ID in RDB
      *  @param start Start time
      *  @param end End time
      *  @return {@link ValueIterator} for raw samples
      *  @throws Exception on error
      */
-    public ValueIterator getRawValues(final int channel_id,
+    public ValueIterator getRawValues(final String channel_name,
             final Instant start, final Instant end) throws Exception
     {
-        return new RawSampleIterator(this, channel_id, start, end, concurrency);
+        return new RawSampleIterator(this, channel_name, start, end);
     }
 
     /** {@inheritDoc} */
@@ -340,7 +277,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
         // MySQL version of the stored proc. requires count > 1
         if (count <= 1)
             throw new Exception("Count must be > 1");
-        final int channel_id = getChannelID(name);
+        //final int channel_id = getChannelID(name);
 
         //        // Use stored procedure in RDB server?
         //        if (stored_procedure.length() > 0)
@@ -363,7 +300,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
         //            counted = result.getInt(1);
         //        }
         // Fetch raw data and perform averaging
-        final ValueIterator raw_data = getRawValues(channel_id, start, end);
+        final ValueIterator raw_data = getRawValues(name, start, end);
 
         //        // If there weren't that many, that's it
         //        if (counted < count)
@@ -495,6 +432,8 @@ public class InfluxDBArchiveReader implements ArchiveReader
 
     @Override
     public void enableConcurrency(boolean concurrency) {
-        this.concurrency  = concurrency;
+        //TODO: does enable concurrency mean anything for InfluxDB?
     }
+
+
 }

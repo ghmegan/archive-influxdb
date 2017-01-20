@@ -3,6 +3,7 @@ package org.csstudio.archive.reader.influxdb;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -59,7 +60,11 @@ public class InfluxDBJavaTest
     @Test
     public void demoBasicConnect() throws Exception
     {
-        long tnano = System.currentTimeMillis() * 1000000 + 1;
+        long millis = System.currentTimeMillis();
+        long tnano = millis * 1000000 + 1;
+        Instant stamp = Instant.ofEpochMilli(millis).plusNanos(1);
+
+        System.out.println("Timestamp: " + tnano + " = " + stamp + " = " + InfluxDBUtil.toInfluxDBTimeFormat(stamp));
 
         double tricky = -Double.MAX_VALUE;
         //double tricky = Double.NaN;
@@ -105,6 +110,8 @@ public class InfluxDBJavaTest
 
         QueryResult result = influxDB.query(query);
         System.out.println(InfluxDBResults.toString(result));
+
+
     }
 
     @Test

@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 
 import org.csstudio.apputil.time.BenchmarkTimer;
 import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
@@ -47,7 +48,7 @@ import java.lang.Thread;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveReaderTest
 {
-    final private static Duration TIMERANGE = Duration.ofHours(10);
+    final private static Duration TIMERANGE = Duration.ofHours(128);
     final private static Duration WAVEFORM_TIMERANGE = Duration.ofMinutes(20);
 
     final private static int BUCKETS = 50;
@@ -76,7 +77,6 @@ public class InfluxDBArchiveReaderTest
 
         channel_name = "testPV";
         array_channel_name = "testPV_Array";
-
 
         if (archive_url == null  ||  channel_name == null)
         {
@@ -141,6 +141,29 @@ public class InfluxDBArchiveReaderTest
 
         ConnectionInfo ci = reader.getConnectionInfo();
         System.out.println(ci);
+    }
+
+    /** Time/Date formatting */
+    @Test
+    public void testTimeDateFormat() throws Exception
+    {
+        //        long millis = System.currentTimeMillis();
+        //        long tnano = millis * 1000000 + 555;
+        //        Instant stamp = Instant.ofEpochMilli(millis).plusNanos(555);
+        //
+        //        System.out.println("Timestamp: " + tnano + " = " + stamp + " = " + InfluxDBUtil.toInfluxDBTimeFormat(stamp));
+
+        final Instant time1 = Instant.ofEpochMilli(1484845031986L).plusNanos(1);
+        final String timestr1 = "2017-01-19T16:57:11.986000001Z";
+
+        final Instant time2 = Instant.ofEpochMilli(1484845213540L).plusNanos(555);
+        final String timestr2 = "2017-01-19T17:00:13.540000555Z";
+
+        assertTrue(InfluxDBUtil.toInfluxDBTimeFormat(time1).equals(timestr1));
+        assertTrue(InfluxDBUtil.toInfluxDBTimeFormat(time2).equals(timestr2));
+
+        assertTrue(InfluxDBUtil.fromInfluxDBTimeFormat(timestr1).equals(time1));
+        assertTrue(InfluxDBUtil.fromInfluxDBTimeFormat(timestr2).equals(time2));
     }
 
     /** Locate channels by pattern */
@@ -334,7 +357,7 @@ public class InfluxDBArchiveReaderTest
 
         final Instant end = Instant.now();
         final Instant start = end.minus(TIMERANGE);
-        final ValueIterator values = new StoredProcedureValueIterator(reader, proc, channel_id, start, end, BUCKETS);
+        final ValueIterator values = new StoredProcedureValueIterator(reader, proc, channel_name, start, end, BUCKETS);
         while (values.hasNext())
         {
             final VType value = values.next();

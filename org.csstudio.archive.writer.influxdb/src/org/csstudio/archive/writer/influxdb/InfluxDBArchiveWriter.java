@@ -177,7 +177,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         InfluxDBWriteChannel channel = channels.get(name);
         if (channel == null)
         {    // Get channel information from InfluxDB
-            QueryResult results = influxQuery.get_newest_meta_datum(name, null);
+            QueryResult results = influxQuery.get_newest_meta_datum(name);
             if (InfluxDBResults.getValueCount(results) <= 0)
             {
                 throw new Exception("Unknown channel " + name);
@@ -198,7 +198,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             throw new Exception("Channel already exists in Writer " + name);
         }
 
-        QueryResult results = influxQuery.get_newest_meta_datum(name, null);
+        QueryResult results = influxQuery.get_newest_meta_datum(name);
         if (InfluxDBResults.getValueCount(results) > 0)
         {
             throw new Exception("Channel already exists in Database " + name);

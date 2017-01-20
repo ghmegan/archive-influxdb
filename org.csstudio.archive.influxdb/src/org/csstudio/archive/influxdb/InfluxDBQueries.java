@@ -2,6 +2,7 @@ package org.csstudio.archive.influxdb;
 
 import java.time.Instant;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.Query;
@@ -26,13 +27,14 @@ public class InfluxDBQueries
 
     public static QueryResult makeQuery(final InfluxDB influxdb, final String stmt, final String dbName)
     {
-        //System.out.println("Query: " + stmt);
+        Activator.getLogger().log(Level.WARNING, "InfluxDB query: {0}", stmt);
         return influxdb.query(new Query(stmt, dbName));
     }
 
     public static void makeChunkQuery(int chunkSize, Consumer<QueryResult> consumer,
             InfluxDB influxdb, String stmt, String dbName) throws Exception
     {
+        Activator.getLogger().log(Level.WARNING, "InfluxDB chunked query: {0}", stmt);
         influxdb.query(new Query(stmt, dbName), chunkSize, consumer);
     }
 
@@ -60,7 +62,11 @@ public class InfluxDBQueries
         }
         if (endtime != null)
         {
-            sb.append(" WHERE time <= ").append(InfluxDBUtil.toNano(endtime).toString());
+            if (starttime == null)
+                sb.append(" WHERE");
+            else
+                sb.append(" AND");
+            sb.append(" time <= ").append(InfluxDBUtil.toNano(endtime).toString());
         }
         sb.append(" ORDER BY time ");
         if (limit != null)
@@ -81,13 +87,13 @@ public class InfluxDBQueries
                 InfluxDBUtil.getDataDBName(channel_name));
     }
 
-    public QueryResult get_newest_channel_samples(final String channel_name, Long num)
-    {
-        return makeQuery(
-                influxdb,
-                get_channel_points("*", channel_name, null, null, -num),
-                InfluxDBUtil.getDataDBName(channel_name));
-    }
+    //    public QueryResult get_newest_channel_samples(final String channel_name, Long num)
+    //    {
+    //        return makeQuery(
+    //                influxdb,
+    //                get_channel_points("*", channel_name, null, null, -num),
+    //                InfluxDBUtil.getDataDBName(channel_name));
+    //    }
 
     public QueryResult get_newest_channel_samples(final String channel_name, final Instant starttime, final Instant endtime, Long num)
     {
@@ -99,21 +105,28 @@ public class InfluxDBQueries
 
 
     public void chunk_get_channel_samples(final int chunkSize,
-            final String channel_name, final Instant starttime, final Instant endtime, Long num, Consumer<QueryResult> consumer) throws Exception
+            final String channel_name, final Instant starttime, final Instant endtime, Long limit, Consumer<QueryResult> consumer) throws Exception
     {
         makeChunkQuery(
                 chunkSize, consumer, influxdb,
-                get_channel_points("*", channel_name, starttime, endtime, num),
+                get_channel_points("*", channel_name, starttime, endtime, limit),
                 InfluxDBUtil.getDataDBName(channel_name));
     }
 
 
-
-    public QueryResult get_newest_meta_datum(final String channel_name, Instant endtime)
+    public QueryResult get_newest_meta_data(final String channel_name, final Instant starttime, final Instant endtime, Long num)
     {
         return makeQuery(
                 influxdb,
-                get_channel_points("*", channel_name, null, endtime, -1L),
+                get_channel_points("*", channel_name, starttime, endtime, -num),
+                InfluxDBUtil.getMetaDBName(channel_name));
+    }
+
+    public QueryResult get_newest_meta_datum(final String channel_name)
+    {
+        return makeQuery(
+                influxdb,
+                get_channel_points("*", channel_name, null, null, -1L),
                 InfluxDBUtil.getMetaDBName(channel_name));
     }
 
@@ -122,6 +135,15 @@ public class InfluxDBQueries
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, null, null, null),
+                InfluxDBUtil.getMetaDBName(channel_name));
+    }
+
+    public void chunk_get_channel_metadata(final int chunkSize,
+            final String channel_name, final Instant starttime, final Instant endtime, Long limit, Consumer<QueryResult> consumer) throws Exception
+    {
+        makeChunkQuery(
+                chunkSize, consumer, influxdb,
+                get_channel_points("*", channel_name, starttime, endtime, limit),
                 InfluxDBUtil.getMetaDBName(channel_name));
     }
 

@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * Copyright (c) 2010 Oak Ridge National Laboratory.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ ******************************************************************************/
+
 package org.csstudio.archive.influxdb;
 
 import java.text.NumberFormat;
@@ -28,8 +36,9 @@ import org.influxdb.dto.QueryResult.Series;
 
 public class MetaTypes
 {
-    // WARNING: DO NOT CHANGE THESE NAMES
-    // Names are used as DB meta data values
+    // WARNING: DO NOT CHANGE THESE ENUM NAMES
+    // Names are used as DB meta data value strings
+    // It is fine to add more as long as the old ones still work
     public enum StoreAs {
         ARCHIVE_UNKNOWN (ArchiveVString.class),
         ARCHIVE_STRING (ArchiveVString.class),
@@ -50,11 +59,26 @@ public class MetaTypes
     public static class MetaObject {
         public final StoreAs storeas;
         public final Object object;
+        public final Instant timestamp;
 
-        MetaObject(Object object, StoreAs storeas)
+        MetaObject(Object object, StoreAs storeas, Instant timestamp)
         {
             this.object = object;
             this.storeas = storeas;
+            this.timestamp = timestamp;
+        }
+
+        @Override
+        public String toString()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.append("MetaObject[").append(storeas.name())
+            .append('@').append(timestamp).append(':');
+            if (object == null)
+                sb.append("null]");
+            else
+                sb.append(object.getClass().getName()).append(']');
+            return sb.toString();
         }
     }
 
@@ -239,22 +263,14 @@ public class MetaTypes
         return null;
     }
 
-    public static MetaObject toMetaObject(QueryResult results) throws Exception
+    public static MetaObject toMetaObject(final List<String> cols, final List<Object> vals) throws Exception
     {
-        if (InfluxDBResults.getValueCount(results) < 1)
-        {
-            throw new Exception ("Could not extract meta object from Query Results. No values: " + results.toString());
-        }
-
-        final Series series0 = results.getResults().get(0).getSeries().get(0);
-        List<String> cols = series0.getColumns();
-        List<Object> val0 = series0.getValues().get(0);
         Map<String, Object> map = new HashMap<String, Object>();
 
         final int N = cols.size();
         for (int i = 0; i < N; i++)
         {
-            map.put(cols.get(i), val0.get(i));
+            map.put(cols.get(i), vals.get(i));
         }
 
         final StoreAs storeas = storedTypeIs((String) map.get("datatype"));
@@ -263,21 +279,44 @@ public class MetaTypes
             throw new Exception ("Could not extract meta object from Query Results. Bad/No datatype tag: " + map.get("datatype"));
         }
 
+        Instant ts = InfluxDBUtil.fromInfluxDBTimeFormat(map.get("time"));
+
         switch(storeas)
         {
         case ARCHIVE_DOUBLE :
         case ARCHIVE_LONG :
         case ARCHIVE_DOUBLE_ARRAY :
         case ARCHIVE_LONG_ARRAY :
-            return new MetaObject(mapToDisplay(map), storeas);
+            return new MetaObject(mapToDisplay(map), storeas, ts);
         case ARCHIVE_ENUM :
-            return new MetaObject(mapToEnumList(map), storeas);
+            return new MetaObject(mapToEnumList(map), storeas, ts);
         case ARCHIVE_STRING :
         case ARCHIVE_UNKNOWN :
-            return new MetaObject(mapToNull(map), storeas);
+            return new MetaObject(mapToNull(map), storeas, ts);
         default:
             throw new Exception ("Could not extract meta object from Query Results. Unhandled stored type: " + storeas.name());
         }
+    }
+
+    public static List<MetaObject> toMetaObject(QueryResult results) throws Exception
+    {
+        if (InfluxDBResults.getValueCount(results) < 1)
+        {
+            throw new Exception ("Could not extract meta objects from Query Results. No values: " + results.toString());
+        }
+
+        final List<MetaObject> ret = new ArrayList<MetaObject>();
+        final List<Series> all_series = InfluxDBResults.getNonEmptySeries(results);
+
+        for (Series series : all_series)
+        {
+            final List<String> cols = series.getColumns();
+            for (final List<Object> vals : series.getValues())
+            {
+                ret.add(toMetaObject(cols, vals));
+            }
+        }
+        return ret;
     }
 
 
