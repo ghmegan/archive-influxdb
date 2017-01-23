@@ -48,11 +48,11 @@ public class MetaTypes
         ARCHIVE_DOUBLE_ARRAY (ArchiveVNumberArray.class),
         ARCHIVE_LONG_ARRAY (ArchiveVNumberArray.class);
 
-        final public Class<?> readclass;
+        final public Class<?> objclass;
 
-        StoreAs(Class<?> readclass)
+        StoreAs(Class<?> objclass)
         {
-            this.readclass = readclass;
+            this.objclass = objclass;
         }
     }
 
@@ -298,7 +298,7 @@ public class MetaTypes
         }
     }
 
-    public static List<MetaObject> toMetaObject(QueryResult results) throws Exception
+    public static List<MetaObject> toMetaObjects(QueryResult results) throws Exception
     {
         if (InfluxDBResults.getValueCount(results) < 1)
         {

@@ -36,10 +36,11 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     /** 'Current' value that <code>next()</code> will return,
      *  or <code>null</code>
      */
-    private VType value = null;
+    private VType next_value = null;
 
     private final ChunkReader samples;
 
+    //TODO: chunk size preferences
     static final private int sample_chunk_size = 10;
     static final private int metadata_chunk_size = 2;
 
@@ -69,7 +70,7 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
         }
 
         Logger logger = Activator.getLogger();
-        logger.log(Level.WARNING, "Results from metadata query: {0}", InfluxDBResults.toString(results));
+        logger.log(Level.FINE, "Results from metadata query: {0}", InfluxDBResults.toString(results));
 
         try
         {
@@ -91,7 +92,7 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
             throw new Exception ("Error getting last metadata in timerange ", e);
         }
 
-        Activator.getLogger().log(Level.WARNING, "Results from sample query: {0}", InfluxDBResults.toString(results));
+        Activator.getLogger().log(Level.FINE, "Results from sample query: {0}", InfluxDBResults.toString(results));
         if (InfluxDBResults.getValueCount(results) < 1)
         {
             samples = null;
@@ -128,7 +129,7 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
         samples = new ChunkReader(sample_queue, sample_endtime, metadata_queue, metadata_endtime, reader.getTimeout());
 
         if (samples.step())
-            value = samples.decodeSampleValue();
+            next_value = samples.decodeSampleValue();
         else
             close();
     }
@@ -137,7 +138,7 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     @Override
     public boolean hasNext()
     {
-        return value != null;
+        return next_value != null;
     }
 
 
@@ -147,15 +148,15 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     public VType next() throws Exception
     {
         // This should not happen...
-        if (value == null)
+        if (next_value == null)
             throw new Exception("RawSampleIterator.next(" + channel_name + ") called after end");
 
         // Remember value to return...
-        final VType result = value;
+        final VType result = next_value;
 
         // ... and prepare next value
         if (samples.step())
-            value = samples.decodeSampleValue();
+            next_value = samples.decodeSampleValue();
         else
             close();
 
@@ -169,6 +170,6 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     public void close()
     {
         super.close();
-        value = null;
+        next_value = null;
     }
 }

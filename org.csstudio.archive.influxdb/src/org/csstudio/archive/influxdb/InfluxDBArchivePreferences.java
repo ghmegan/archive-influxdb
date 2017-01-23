@@ -49,7 +49,7 @@ public class InfluxDBArchivePreferences
     {
         final IPreferencesService prefs = Platform.getPreferencesService();
         if (prefs == null)
-            return 0;
+            return 10;
         return prefs.getInt(Activator.ID, TIMEOUT, 0, null);
     }
 

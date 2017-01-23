@@ -146,6 +146,7 @@ public class InfluxDBArchiveWriterTest
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.14));
         // .. double that could be int
         writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.00));
+        writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, Double.NaN));
         writer.flush();
 
         printSomePoints(channel.getName());
@@ -160,7 +161,7 @@ public class InfluxDBArchiveWriterTest
         System.out.println("Writing double array sample for channel " + array_channel_name);
         final WriteChannel channel = getMakeChannel(array_channel_name);
         writer.addSample(channel, new ArchiveVNumberArray(Instant.now(), AlarmSeverity.NONE, "OK", display,
-                3.14, 6.28, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0));
+                Double.NaN, 6.28, 1.0, 2.0, 3.0, Double.NaN, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0));
         writer.flush();
 
         printSomePoints(channel.getName());

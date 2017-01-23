@@ -7,6 +7,9 @@
  ******************************************************************************/
 package org.csstudio.archive.influxdb;
 
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** (Not really a) Plugin Activator
@@ -17,9 +20,33 @@ public class Activator
     /** Plugin ID defined in MANIFEST.MF */
     final public static String ID = "org.csstudio.archive.influxdb"; //$NON-NLS-1$
 
+    private static Activator instance = new Activator();
+    private final Logger logger;
+
+    /** @return Singleton instance */
+    public static Activator getInstance()
+    {
+        return instance;
+    }
+
+    Activator()
+    {
+        logger = Logger.getLogger(ID);
+        logger.setLevel(Level.FINE);
+        for (Handler handler : logger.getHandlers())
+        {
+            handler.setLevel(Level.FINE);
+        }
+        ConsoleHandler handler = new ConsoleHandler();
+        // PUBLISH this level
+        handler.setLevel(Level.FINE);
+        logger.addHandler(handler);
+    }
+
     /** @return Logger for plugin ID */
     public static Logger getLogger()
     {
-        return Logger.getLogger(Activator.ID);
+        return instance.logger;
     }
+
 }

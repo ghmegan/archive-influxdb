@@ -27,14 +27,14 @@ public class InfluxDBQueries
 
     public static QueryResult makeQuery(final InfluxDB influxdb, final String stmt, final String dbName)
     {
-        Activator.getLogger().log(Level.WARNING, "InfluxDB query: {0}", stmt);
+        Activator.getLogger().log(Level.FINE, "InfluxDB query: {0}", stmt);
         return influxdb.query(new Query(stmt, dbName));
     }
 
     public static void makeChunkQuery(int chunkSize, Consumer<QueryResult> consumer,
             InfluxDB influxdb, String stmt, String dbName) throws Exception
     {
-        Activator.getLogger().log(Level.WARNING, "InfluxDB chunked query: {0}", stmt);
+        Activator.getLogger().log(Level.FINE, "InfluxDB chunked query: {0}", stmt);
         influxdb.query(new Query(stmt, dbName), chunkSize, consumer);
     }
 

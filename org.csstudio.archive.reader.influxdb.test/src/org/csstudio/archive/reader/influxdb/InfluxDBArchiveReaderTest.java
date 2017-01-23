@@ -48,7 +48,7 @@ import java.lang.Thread;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveReaderTest
 {
-    final private static Duration TIMERANGE = Duration.ofHours(128);
+    final private static Duration TIMERANGE = Duration.ofDays(30);
     final private static Duration WAVEFORM_TIMERANGE = Duration.ofMinutes(20);
 
     final private static int BUCKETS = 50;
@@ -75,8 +75,8 @@ public class InfluxDBArchiveReaderTest
         String user = null;
         String password = null;
 
-        channel_name = "testPV";
-        array_channel_name = "testPV_Array";
+        channel_name = "testPV0";
+        array_channel_name = "testPV0_Array";
 
         if (archive_url == null  ||  channel_name == null)
         {
@@ -247,7 +247,7 @@ public class InfluxDBArchiveReaderTest
                 if (display == null)
                     display = ValueUtil.displayOf(value);
                 ++count;
-                if (count > 10)
+                if (count > 100)
                 {
                     System.out.println("Skipping rest...");
                     break;

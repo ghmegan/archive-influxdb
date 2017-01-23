@@ -12,15 +12,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.influxdb.MetaTypes;
+import org.csstudio.archive.influxdb.MetaTypes.MetaObject;
 import org.csstudio.archive.influxdb.MetaTypes.StoreAs;
 import org.csstudio.archive.vtype.MetaDataHelper;
 import org.csstudio.archive.vtype.VTypeHelper;
@@ -34,13 +32,8 @@ import org.influxdb.InfluxDB.ConsistencyLevel;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.influxdb.dto.QueryResult;
-import org.diirt.util.array.ListNumber;
-import org.diirt.vtype.AlarmSeverity;
 import org.diirt.vtype.Display;
 import org.diirt.vtype.VEnum;
-import org.diirt.vtype.VNumber;
-import org.diirt.vtype.VNumberArray;
-import org.diirt.vtype.VString;
 import org.diirt.vtype.VType;
 
 /** ArchiveWriter implementation for RDB
@@ -51,13 +44,8 @@ import org.diirt.vtype.VType;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveWriter implements ArchiveWriter
 {
-    /** Status string for <code>Double.NaN</code> samples */
-    final private static String NOT_A_NUMBER_STATUS = "NaN";
-
     //TODO: timeout?
     //final private int SQL_TIMEOUT_SECS = InfluxDBArchivePreferences.getSQLTimeoutSecs();
-
-    final private int MAX_TEXT_SAMPLE_LENGTH = Preferences.getMaxStringSampleLength();
 
     /** RDB connection */
     final private InfluxDB influxdb;
@@ -182,8 +170,13 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             {
                 throw new Exception("Unknown channel " + name);
             }
+            List<MetaObject> meta = MetaTypes.toMetaObjects(results);
+            if (meta.size() != 1)
+            {
+                throw new Exception("Metadata results for channel " + name + " did not parse into single object: " + results);
+            }
             channel = new InfluxDBWriteChannel(name);
-            channel.setMetaData(MetaTypes.toMetaObject(results));
+            channel.setMetaData(meta.get(0));
             channels.put(name, channel);
         }
         return channel;
@@ -217,7 +210,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
         final Instant stamp = VTypeHelper.getTimestamp(sample);
 
         writeMetaData(influxdb_channel, stamp, sample, storeas);
-        batchSample(influxdb_channel, stamp, sample, storeas);
+        batchSets.getChannelSamplePoints(channel.getName()).point(InfluxDBSampleEncoder.encodeSample(influxdb_channel, stamp, sample, storeas));
     }
 
     /** Write meta data if it was never written or has changed
@@ -275,208 +268,11 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             throw new Exception ("Sample generated unhandled meta store type: " + storeas.name());
         }
 
-        //        if (sample instanceof Display)
-        //        {
-        //            final Display display = (Display)sample;
-        //            if (MetaDataHelper.equals(display, channel.getMetadata()))
-        //                return;
-        //
-        //            //            // Clear enumerated meta data, replace numeric
-        //            //            EnumMetaDataHelper.delete(influxdb, sql, channel);
-        //            //            NumericMetaDataHelper.delete(influxdb, sql, channel);
-        //            //            NumericMetaDataHelper.insert(influxdb, sql, channel, display);
-        //            //            influxdb.getConnection().commit();
-        //            //            channel.setMetaData(display);
-        //        }
-        //        else if (sample instanceof VEnum)
-        //        {
-        //            final List<String> labels = ((VEnum)sample).getLabels();
-        //            if (MetaDataHelper.equals(labels, channel.getMetadata()))
-        //                return;
-        //
-        //            //            // Clear numeric meta data, set enumerated in RDB
-        //            //            NumericMetaDataHelper.delete(influxdb, sql, channel);
-        //            //            EnumMetaDataHelper.delete(influxdb, sql, channel);
-        //            //            EnumMetaDataHelper.insert(influxdb, sql, channel, labels);
-        //            //            influxdb.getConnection().commit();
-        //            //            channel.setMetaData(labels);
-        //        }
     }
 
-    /** Perform 'batched' insert for sample.
-     *  <p>Needs eventual flush()
-     *  @param channel Channel
-     *  @param sample Sample to insert
-     *  @throws Exception on error
-     */
-    private void batchSample(final InfluxDBWriteChannel channel, final Instant stamp, final VType sample, final StoreAs storeas) throws Exception
-    {
-        final String severity = VTypeHelper.getSeverity(sample).toString();
-        final String status = VTypeHelper.getMessage(sample);
-
-
-        //        final Timestamp stamp = TimestampHelper.toSQLTimestamp(VTypeHelper.getTimestamp(sample));
-        //        final int severity = severities.findOrCreate(VTypeHelper.getSeverity(sample));
-        //        final Status status = stati.findOrCreate(VTypeHelper.getMessage(sample));
-        //
-        //        // Severity/status cache may enable auto-commit
-        //        if (influxdb.getConnection().getAutoCommit() == true)
-        //            influxdb.getConnection().setAutoCommit(false);
-        //
-        switch (storeas)
-        {
-        case ARCHIVE_DOUBLE :
-        {
-            final Number number = ((VNumber)sample).getValue();
-            batchDoubleSamples(channel, stamp, severity, status, number.doubleValue(), null);
-            break;
-        }
-        case ARCHIVE_LONG:
-        {
-            final Number number = ((VNumber)sample).getValue();
-            batchLongSample(channel, stamp, severity, status, number.longValue());
-            break;
-        }
-        case ARCHIVE_DOUBLE_ARRAY:
-        {
-            final ListNumber data = ((VNumberArray)sample).getData();
-            batchDoubleSamples(channel, stamp, severity, status, data.getDouble(0), data);
-            break;
-        }
-        case ARCHIVE_ENUM:
-        {
-            batchLongSample(channel, stamp, severity, status, ((VEnum)sample).getIndex());
-            break;
-        }
-        case ARCHIVE_STRING:
-        {
-            batchTextSamples(channel, stamp, severity, status, ((VString)sample).getValue());
-            break;
-        }
-        case ARCHIVE_UNKNOWN:
-        {
-            batchTextSamples(channel, stamp, severity, status, sample.toString());
-            break;
-        }
-        default:
-            throw new Exception ("Sample generated unhandled store type: " + storeas.name());
-        }
-
-
-        //        if (sample instanceof VDouble)
-        //            batchDoubleSamples(channel, stamp, severity, status, ((VDouble)sample).getValue(), null);
-        //        else if (sample instanceof VNumber)
-        //        {    // Write as double or integer?
-        //            final Number number = ((VNumber)sample).getValue();
-        //            if (number instanceof Double)
-        //                batchDoubleSamples(channel, stamp, severity, status, number.doubleValue(), null);
-        //            else
-        //                batchLongSample(channel, stamp, severity, status, number.longValue());
-        //        }
-        //        else if (sample instanceof VNumberArray)
-        //        {
-        //            final ListNumber data = ((VNumberArray)sample).getData();
-        //            batchDoubleSamples(channel, stamp, severity, status, data.getDouble(0), data);
-        //        }
-        //        else if (sample instanceof VEnum)
-        //            batchLongSample(channel, stamp, severity, status, ((VEnum)sample).getIndex());
-        //        else if (sample instanceof VString)
-        //            batchTextSamples(channel, stamp, severity, status, ((VString)sample).getValue());
-        //        else // Handle possible other types as strings
-        //            batchTextSamples(channel, stamp, severity, status, sample.toString());
-
-    }
-
-
-
-    /** Add 'insert' for double samples to batch, handling arrays
-     *  via the original array_val table
-     */
-    private void batchDoubleSamples(final InfluxDBWriteChannel channel,
-            final Instant stamp, final String severity,
-            final String status, final double dbl, final ListNumber additional) throws Exception
-    {
-        org.influxdb.dto.Point.Builder point;
-
-        //TODO: Catch other number states than NaN (e.g. INF)? Add tags instead of status string?
-        if (Double.isNaN(dbl))
-        {
-            //TODO: nano precision may be lost Long time field (library limitation)
-            point = Point.measurement(channel.getName())
-                    .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
-                    .tag("severity", AlarmSeverity.UNDEFINED.name())
-                    .tag("status", NOT_A_NUMBER_STATUS)
-                    .addField("double.0", 0.0d);
-        }
-        else
-        {
-            point = Point.measurement(channel.getName())
-                    .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
-                    .tag("severity", severity)
-                    .tag("status", status)
-                    .addField("double.0", dbl);
-        }
-
-        if (additional != null)
-        {
-            //handle arrays (Recommended way is lots of fields)
-            final int N = additional.size();
-            for (int i = 1; i < N; i++)
-            {
-                String fname = "double." + Integer.toString(i);
-                // Patch NaN.
-                // Conundrum: Should we set the status/severity to indicate NaN?
-                final double dbli = additional.getDouble(i);
-                if (Double.isNaN(dbli))
-                    point.addField(fname, 0.0);
-                else
-                    point.addField(fname, dbli);
-            }
-        }
-
-        batchSets.getChannelSamplePoints(channel.getName()).point(point.build());
-    }
-
-    /** Helper for batchSample: Add long sample to batch.  */
-    private void batchLongSample(final InfluxDBWriteChannel channel,
-            final Instant stamp, final String severity,
-            final String status, final long num) throws Exception
-    {
-        Point point = Point.measurement(channel.getName())
-                .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
-                .tag("severity", severity)
-                .tag("status", status)
-                .addField("long.0", num).
-                build();
-
-        batchSets.getChannelSamplePoints(channel.getName()).point(point);
-    }
-
-
-    /** Helper for batchSample: Add text sample to batch. */
-    private void batchTextSamples(final InfluxDBWriteChannel channel,
-            final Instant stamp, final String severity,
-            final String status, String txt) throws Exception
-    {
-        if (txt.length() > MAX_TEXT_SAMPLE_LENGTH)
-        {
-            Activator.getLogger().log(Level.INFO,
-                    "Value of {0} exceeds {1} chars: {2}",
-                    new Object[] { channel.getName(), MAX_TEXT_SAMPLE_LENGTH, txt });
-            txt = txt.substring(0, MAX_TEXT_SAMPLE_LENGTH);
-        }
-        Point point = Point.measurement(channel.getName())
-                .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
-                .tag("severity", severity)
-                .tag("status", status)
-                .addField("string.0", txt).
-                build();
-
-        batchSets.getChannelSamplePoints(channel.getName()).point(point);
-    }
 
     /** {@inheritDoc}
-     *  RDB implementation completes pending batches
+     *  InfluxDB implementation completes pending batches
      */
     @Override
     public void flush() throws Exception
