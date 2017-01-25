@@ -9,6 +9,7 @@ package org.csstudio.archive.writer.influxdb;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Random;
 
 import org.csstudio.archive.vtype.ArchiveVEnum;
 import org.csstudio.archive.vtype.ArchiveVNumber;
@@ -21,7 +22,6 @@ import org.diirt.vtype.Display;
 import org.diirt.vtype.ValueFactory;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 //import org.junit.Ignore;
@@ -53,12 +53,13 @@ public class InfluxDBArchiveWriterTest
         //        name = settings.getString("archive_channel");
         //        array_name = settings.getString("archive_array_channel");
 
-        String archive_url = "http://localhost:8086";
+        //String archive_url = "http://localhost:8086";
+        String archive_url = "http://diane.ornl.gov:8086";
         String user = null;
         String password = null;
 
-        channel_name = "testPV0";
-        array_channel_name = "testPV_Array0";
+        channel_name = "testPV";
+        array_channel_name = "testPV_Array";
 
         if (archive_url == null  ||  channel_name == null)
         {
@@ -206,7 +207,25 @@ public class InfluxDBArchiveWriterTest
     final private static int TEST_DURATION_SECS = 60;
     final private static long FLUSH_COUNT = 500;
 
-    @Ignore
+
+    /**
+     *
+     * @throws Exception
+     *
+     * Results from testing on Mac Laptop running Centos7 VM in VirtualBox
+     * 2.5 GHz Intel Core i7
+     * 16 GB 1600 MHz DDR3
+     * 512GB SSD storage
+     *
+     * Starting with (mostly) empty influxdb ver 1.1
+     *  du -sh /var/lib/influxdb/*
+     * 1.7M    /var/lib/influxdb/data
+     * 4.0K    /var/lib/influxdb/meta
+     * 6.5M    /var/lib/influxdb/wal
+     *
+     *
+     */
+
     @Test
     public void demoWriteSpeedDouble() throws Exception
     {
@@ -214,22 +233,36 @@ public class InfluxDBArchiveWriterTest
             return;
 
         System.out.println("Write test: Adding samples to " + channel_name + " for " + TEST_DURATION_SECS + " secs");
-        final WriteChannel channel = writer.getChannel(channel_name);
+        final WriteChannel channel = getMakeChannel(channel_name);
 
         long count = 0;
+
+        double[] vals = new double[(int) FLUSH_COUNT];
+        Random randval = new Random();
+        for (int f = 0; f < FLUSH_COUNT; f++)
+        {
+            vals[f] = randval.nextDouble();
+        }
+
         final long start = System.currentTimeMillis();
-        final long end = start + TEST_DURATION_SECS*1000L;
+        long end = start;
+        final long to_end = start + TEST_DURATION_SECS*1000L;
         do
         {
-            ++count;
-            writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, 3.11111111));
-            if (count % FLUSH_COUNT == 0)
-                writer.flush();
+            for (int f = 0; f < FLUSH_COUNT; f++)
+            {
+                writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, vals[f]));
+            }
+            count += FLUSH_COUNT;
+            writer.flush();
+            end = System.currentTimeMillis();
         }
-        while (System.currentTimeMillis() < end);
+        while (end < to_end);
         writer.flush();
 
+        final double duration_secs = (end-start) / 1000.0;
+
         System.out.println("Wrote " + count + " samples, i.e. "
-                + ((double)count / TEST_DURATION_SECS) + " samples/sec.");
+                + (count / duration_secs) + " samples/sec.");
     }
 }
