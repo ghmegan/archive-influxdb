@@ -205,7 +205,7 @@ public class InfluxDBArchiveWriterTest
     }
 
     final private static int TEST_DURATION_SECS = 60;
-    final private static long FLUSH_COUNT = 500;
+    final private static long FLUSH_COUNT = 5000;
 
 
     /**
@@ -217,11 +217,6 @@ public class InfluxDBArchiveWriterTest
      * 16 GB 1600 MHz DDR3
      * 512GB SSD storage
      *
-     * Starting with (mostly) empty influxdb ver 1.1
-     *  du -sh /var/lib/influxdb/*
-     * 1.7M    /var/lib/influxdb/data
-     * 4.0K    /var/lib/influxdb/meta
-     * 6.5M    /var/lib/influxdb/wal
      *
      *
      */
@@ -247,11 +242,13 @@ public class InfluxDBArchiveWriterTest
         final long start = System.currentTimeMillis();
         long end = start;
         final long to_end = start + TEST_DURATION_SECS*1000L;
+        Instant stamp = Instant.now();
         do
         {
             for (int f = 0; f < FLUSH_COUNT; f++)
             {
-                writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.NONE, "OK", display, vals[f]));
+                stamp = stamp.plusNanos(100);
+                writer.addSample(channel, new ArchiveVNumber(stamp, AlarmSeverity.NONE, "OK", display, vals[f]));
             }
             count += FLUSH_COUNT;
             writer.flush();
