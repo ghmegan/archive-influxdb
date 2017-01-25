@@ -205,20 +205,37 @@ public class InfluxDBArchiveWriterTest
     }
 
     final private static int TEST_DURATION_SECS = 60;
-    final private static long FLUSH_COUNT = 5000;
-
+    final private static long FLUSH_COUNT = 10000;
 
     /**
      *
      * @throws Exception
      *
-     * Results from testing on Mac Laptop running Centos7 VM in VirtualBox
-     * 2.5 GHz Intel Core i7
-     * 16 GB 1600 MHz DDR3
-     * 512GB SSD storage
+     * Results from testing:
+     * Server:
+     *    - RHEL 7
+     *    - 8 core Intel i7-4790 3.6GHz
+     *    - 16GB 1600MHz DDR3 RAM
+     *    - 500GB 7200 RPM SATA Disk
      *
+     *  Client:
+     *    - OSX 10.11
+     *    - 2.5 GHz Intel Core i7
+     *    - 16 GB 1600 MHz DDR3
+     *    - 512GB SSD storage
      *
+     *   Client -> Server over LAN:
+     *   - FLUSH_COUNT =    500 ->  12,000 samples per second
+     *   - FLUSH_COUNT =   5000 ->  75,000 samples per second
+     *   - FLUSH_COUNT =  10000 -> 110,000 samples per second
+     *   - FLUSH_COUNT =  20000 -> 140,000 samples per second
+     *   - FLUSH_COUNT =  50000 -> 170,000 samples per second
+     *   - FLUSH_COUNT = 100000 -> 180,000 samples per second
+     *   - FLUSH_COUNT = 200000 -> 185,000 samples per second
      *
+     *   According to the documentation, they do not recommend writing more than 5000 points
+     *   at a time to avoid timing out during the HTTP POST. So the higher flush counts may get
+     *   higher speeds, but might encounter problems. These tests did not have any such problems.
      */
 
     @Test
