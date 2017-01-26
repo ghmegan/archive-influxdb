@@ -66,6 +66,13 @@ public class InfluxDBUtil
         if (timestamp instanceof String)
             return fromInfluxDBTimeFormat((String)timestamp);
 
+        if (timestamp instanceof Double)
+        {
+            Double millis = (Double)timestamp / 1000000.0;
+            Double nanos = (Double)timestamp - (millis * 1000000.0);
+            return Instant.ofEpochMilli(millis.longValue()).plusNanos(nanos.longValue());
+        }
+
         throw new Exception ("Cannot convert nonstring object to instant : " + timestamp.getClass().getName());
     }
 

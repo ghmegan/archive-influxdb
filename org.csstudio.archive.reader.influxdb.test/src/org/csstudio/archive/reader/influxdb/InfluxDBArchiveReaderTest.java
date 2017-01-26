@@ -48,12 +48,12 @@ import java.lang.Thread;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveReaderTest
 {
-    final private static Duration TIMERANGE = Duration.ofDays(30);
+    final private static Duration TIMERANGE = Duration.ofHours(10);
     final private static Duration WAVEFORM_TIMERANGE = Duration.ofMinutes(20);
 
     final private static int BUCKETS = 50;
 
-    final private static boolean dump = true;
+
 
     @SuppressWarnings("unused")
     final private static SimpleDateFormat parser = new SimpleDateFormat("yyyy/MM/dd");
@@ -71,12 +71,13 @@ public class InfluxDBArchiveReaderTest
         //        name = settings.getString("archive_channel");
         //        array_name = settings.getString("archive_array_channel");
 
-        String archive_url = "http://localhost:8086";
+        //String archive_url = "http://localhost:8086";
+        String archive_url = "http://diane.ornl.gov:8086";
         String user = null;
         String password = null;
 
-        channel_name = "testPV0";
-        array_channel_name = "testPV0_Array";
+        channel_name = "testPV";
+        array_channel_name = "testPV_Array";
 
         if (archive_url == null  ||  channel_name == null)
         {
@@ -222,6 +223,10 @@ public class InfluxDBArchiveReaderTest
         }
     }
 
+    final private static boolean dump = true;
+    final private static int max_samples = 10000000;
+
+
 
     /** Get raw data for scalar */
     @Test
@@ -247,7 +252,7 @@ public class InfluxDBArchiveReaderTest
                 if (display == null)
                     display = ValueUtil.displayOf(value);
                 ++count;
-                if (count > 100)
+                if (count > 10)
                 {
                     System.out.println("Skipping rest...");
                     break;
@@ -259,7 +264,7 @@ public class InfluxDBArchiveReaderTest
         else
         {
             int count = 0;
-            while (values.hasNext())
+            while ((values.hasNext()) && (count < max_samples))
             {
                 final VType value = values.next();
                 // System.out.println(value);

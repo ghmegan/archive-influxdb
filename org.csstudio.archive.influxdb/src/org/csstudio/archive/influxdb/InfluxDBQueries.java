@@ -11,30 +11,39 @@ import org.influxdb.dto.QueryResult;
 public class InfluxDBQueries
 {
     private final InfluxDB influxdb;
-    private final int chunkSize;
+    //private final int chunkSize;
 
     public InfluxDBQueries(InfluxDB influxdb)
     {
         this.influxdb = influxdb;
-        this.chunkSize = 5000;
+        //this.chunkSize = 5000;
     }
 
     public InfluxDBQueries(InfluxDB influxdb, int chunkSize)
     {
         this.influxdb = influxdb;
-        this.chunkSize = chunkSize;
+        //this.chunkSize = chunkSize;
     }
+
+    //TODO: timestamps come back with wrong values stored in Double... would be faster if it worked.
+    //private final static boolean query_nanos = true;
 
     public static QueryResult makeQuery(final InfluxDB influxdb, final String stmt, final String dbName)
     {
-        Activator.getLogger().log(Level.FINE, "InfluxDB query: {0}", stmt);
+        Activator.getLogger().log(Level.FINE, "InfluxDB query ({0}): {1}", new Object[] {dbName, stmt});
+        //if (query_nanos)
+        //    return influxdb.query(new Query(stmt, dbName), TimeUnit.NANOSECONDS);
         return influxdb.query(new Query(stmt, dbName));
+
     }
 
     public static void makeChunkQuery(int chunkSize, Consumer<QueryResult> consumer,
             InfluxDB influxdb, String stmt, String dbName) throws Exception
     {
-        Activator.getLogger().log(Level.FINE, "InfluxDB chunked query: {0}", stmt);
+        Activator.getLogger().log(Level.FINE, "InfluxDB chunked ({2}) query ({0}): {1}", new Object[] {dbName, stmt, chunkSize});
+        //if (query_nanos)
+        //   influxdb.query(new Query(stmt, dbName), TimeUnit.NANOSECONDS, chunkSize, consumer);
+        //else
         influxdb.query(new Query(stmt, dbName), chunkSize, consumer);
     }
 
@@ -100,6 +109,14 @@ public class InfluxDBQueries
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, starttime, endtime, -num),
+                InfluxDBUtil.getDataDBName(channel_name));
+    }
+
+    public QueryResult get_channel_samples(final String channel_name, final Instant starttime, final Instant endtime, Long num)
+    {
+        return makeQuery(
+                influxdb,
+                get_channel_points("*", channel_name, starttime, endtime, num),
                 InfluxDBUtil.getDataDBName(channel_name));
     }
 

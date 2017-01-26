@@ -99,7 +99,7 @@ public class ChunkReader extends InfluxDBSampleDecoder
             {
                 Activator.getLogger().log(Level.FINER, "Polling for next chunk of samples");
                 final QueryResult results = sample_queue.poll(timeout_secs, TimeUnit.SECONDS);
-                Activator.getLogger().log(Level.FINEST, "Got sample chunk : {0}", InfluxDBResults.toString(results) );
+                //Activator.getLogger().log(Level.FINEST, () -> "Got sample chunk : " + InfluxDBResults.toString(results) );
                 next_sample_series.addAll(InfluxDBResults.getSeries(results));
             }
             catch (Exception e)
@@ -147,7 +147,7 @@ public class ChunkReader extends InfluxDBSampleDecoder
             try
             {
                 final QueryResult results = metadata_queue.poll(timeout_secs, TimeUnit.SECONDS);
-                Activator.getLogger().log(Level.FINEST, "Got metadata chunk : {0}", InfluxDBResults.toString(results) );
+                //Activator.getLogger().log(Level.FINEST, () -> "Got metadata chunk " + InfluxDBResults.toString(results) );
                 next_metadata.addAll(MetaTypes.toMetaObjects(results));
             }
             catch (Exception e)
@@ -156,7 +156,7 @@ public class ChunkReader extends InfluxDBSampleDecoder
             }
             next_meta = next_metadata.poll();
         }
-        Activator.getLogger().log(Level.FINER, "Stepped next metadata {0}", next_meta.toString());
+        Activator.getLogger().log(Level.FINER, () -> "Stepped next metadata " + next_meta.toString());
     }
 
     private void update_meta() throws Exception
@@ -240,7 +240,7 @@ public class ChunkReader extends InfluxDBSampleDecoder
         cur_sample_time = InfluxDBUtil.fromInfluxDBTimeFormat(this.getValue("time"));
         update_meta();
 
-        Activator.getLogger().log(Level.FINER, "sample step success: {0}", this.toString());
+        Activator.getLogger().log(Level.FINER, () -> "sample step success: " + this.toString());
         return true;
     }
 
