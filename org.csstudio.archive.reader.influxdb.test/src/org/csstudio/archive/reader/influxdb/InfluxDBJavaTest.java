@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -13,6 +14,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDB.ConsistencyLevel;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.*;
+import org.influxdb.dto.QueryResult.Series;
 
 public class InfluxDBJavaTest
 {
@@ -41,7 +43,7 @@ public class InfluxDBJavaTest
     {
         try
         {
-            influxDB = InfluxDBFactory.connect("http://localhost:8086");
+            influxDB = InfluxDBFactory.connect("http://diane.ornl.gov:8086");
             printInfo(influxDB);
         }
         catch (Exception e1)
@@ -53,6 +55,106 @@ public class InfluxDBJavaTest
 
 
         influxDB.createDatabase(dbName);
+
+    }
+
+    /** Basic connection */
+    @Test
+    public void LongValueProblem()
+    {
+        long millis = System.currentTimeMillis();
+        long innano = millis * 1000000 + 1;
+        Instant instamp = Instant.ofEpochMilli(millis).plusNanos(1);
+
+        long lval = 1485370052974000001L;
+
+        System.out.println("Timestamp: " + innano + " = " + instamp);
+
+        BatchPoints batchPoints = BatchPoints
+                .database(dbName)
+                .tag("async", "true")
+                .retentionPolicy("autogen")
+                .consistency(ConsistencyLevel.ALL)
+                .build();
+        Point point = Point.measurement("testProblems")
+                .time(innano, TimeUnit.NANOSECONDS)
+                .addField("double", 3.14)
+                .addField("long", lval)
+                .build();
+
+        batchPoints.point(point);
+
+        try
+        {
+            // Any failure response from the influx server will thrown as an exception
+            // with the exception error message set to the server response
+            influxDB.write(batchPoints);
+        }
+        catch (Exception e)
+        {
+            System.err.println("Write Failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        Query query = new Query("SELECT * FROM testProblems ORDER BY time DESC LIMIT 1", dbName);
+
+        System.out.println("Testing query using rfc3339 time/date: ");
+        QueryResult result = influxDB.query(query);
+        System.out.println(InfluxDBResults.toString(result));
+
+        Series series0 = result.getResults().get(0).getSeries().get(0);
+        List<String> cols = series0.getColumns();
+        List<Object> val0 = series0.getValues().get(0);
+
+        String tsstr = (String) val0.get(cols.indexOf("time"));
+        Instant outstamp = Instant.from(DateTimeFormatter.ISO_INSTANT.parse(tsstr));
+
+        if (!outstamp.equals(instamp))
+        {
+            System.err.println("Got bad timestamp value back as string [" + tsstr + "] -> " + outstamp + " != " + instamp);
+        }
+
+        Object outlval_obj = val0.get(cols.indexOf("long"));
+        if (outlval_obj instanceof Double)
+        {
+            long outlval = ((Double)outlval_obj).longValue();
+            if (outlval != lval)
+            {
+                System.err.println("Got bad lval back as double [" + (outlval_obj) + "] -> " + outlval + " != " + lval);
+            }
+        }
+        else
+        {
+            System.err.println("Expected Double output for long value... got " + outlval_obj.getClass().getName() + " = " + outlval_obj.toString());
+        }
+
+        System.out.println("Testing query using epoch=n time/date: ");
+        result = influxDB.query(query, TimeUnit.NANOSECONDS);
+        System.out.println(InfluxDBResults.toString(result));
+
+        series0 = result.getResults().get(0).getSeries().get(0);
+        cols = series0.getColumns();
+        val0 = series0.getValues().get(0);
+
+        Double tsnano = (Double) val0.get(cols.indexOf("time"));
+        long outnano = tsnano.longValue();
+        long outmillis = outnano / 1000000;
+        outstamp = Instant.ofEpochMilli(outmillis).plusNanos(outnano - (outmillis * 1000000));
+        if ((outnano != innano) || (!outstamp.equals(instamp)))
+        {
+            System.err.println("Got bad long nanos back as double [" + tsnano + "] -> " + outnano + " ?= " + innano);
+            System.err.println("Got bad timestamp back as double [" + tsnano + "] -> " + outstamp + " ?= " + instamp);
+        }
+
+        outlval_obj = val0.get(cols.indexOf("long"));
+        if (outlval_obj instanceof Double)
+        {
+            long outlval = ((Double)outlval_obj).longValue();
+            if (outlval != lval)
+            {
+                System.err.println("Got bad lval back as double [" + outlval_obj + "] -> " + outlval + " != " + lval);
+            }
+        }
 
     }
 
