@@ -23,6 +23,7 @@ import org.diirt.vtype.ValueFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 //import org.junit.Ignore;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
@@ -198,7 +199,7 @@ public class InfluxDBArchiveWriterTest
         writer.flush();
 
         // Integer, sets numeric meta data
-        writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.MINOR, "OK", display, 42));
+        writer.addSample(channel, new ArchiveVNumber(Instant.now(), AlarmSeverity.MINOR, "OK", display, 1485370052974000001L));
         writer.flush();
 
         printSomePoints(channel.getName());
@@ -238,6 +239,7 @@ public class InfluxDBArchiveWriterTest
      *   higher speeds, but might encounter problems. These tests did not have any such problems.
      */
 
+    @Ignore
     @Test
     public void demoWriteSpeedDouble() throws Exception
     {

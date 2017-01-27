@@ -41,14 +41,14 @@ public class Activator extends Plugin
     Activator()
     {
         logger = Logger.getLogger(ID);
-        //        logger.setLevel(Level.FINER);
+        //        logger.setLevel(Level.FINE);
         //        for (Handler handler : logger.getHandlers())
         //        {
-        //            handler.setLevel(Level.FINER);
+        //            handler.setLevel(Level.FINE);
         //        }
         //        ConsoleHandler handler = new ConsoleHandler();
         //        // PUBLISH this level
-        //        handler.setLevel(Level.FINER);
+        //        handler.setLevel(Level.FINE);
         //        logger.addHandler(handler);
     }
 

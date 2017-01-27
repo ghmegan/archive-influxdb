@@ -103,6 +103,8 @@ public class InfluxDBResults
     public static int getValueCount(QueryResult results)
     {
         int ret = 0;
+        if (results == null)
+            return -1;
         if (getResultCount(results) > 0)
         {
             for (Result result : results.getResults() )

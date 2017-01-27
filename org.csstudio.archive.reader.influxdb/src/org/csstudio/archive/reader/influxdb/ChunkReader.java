@@ -71,6 +71,10 @@ public class ChunkReader extends InfluxDBSampleDecoder
     /** Remaining metadata in the current metadata chunk */
     final protected Queue<MetaObject> next_metadata = new LinkedList<MetaObject>();
 
+    private int step_count;
+
+    private int recv_vals;
+
     ChunkReader(final BlockingQueue<QueryResult> sample_queue, final Instant last_sample_time,
             final BlockingQueue<QueryResult> metadata_queue, final Instant last_metadata_time,
             final int timeout_secs)
@@ -87,6 +91,9 @@ public class ChunkReader extends InfluxDBSampleDecoder
         this.cur_sample_values = null;
         this.cur_meta = null;
         this.next_meta = null;
+
+        this.step_count = 0;
+        this.recv_vals = 0;
     }
 
     private boolean poll_next_sample_series() throws Exception
@@ -117,7 +124,9 @@ public class ChunkReader extends InfluxDBSampleDecoder
         int col_count = InfluxDBResults.getColumnCount(next_series);
         int val_count = InfluxDBResults.getValueCount(next_series);
 
-        Activator.getLogger().log(Level.FINER, "Polled for next series of samples (cols = {0}, vals = {1})", new Object[] {col_count, val_count});
+        recv_vals += val_count;
+        Activator.getLogger().log(Level.FINE, "Polled for next series of samples (cols = {0}, vals = {1}, total vals = {2})", new Object[] {col_count, val_count, recv_vals});
+
 
         if ((col_count < 1) || (val_count < 1))
             return poll_next_sample_series();
@@ -225,7 +234,9 @@ public class ChunkReader extends InfluxDBSampleDecoder
         {
             if (!poll_next_sample_series())
             {
-                Activator.getLogger().log(Level.WARNING, "Unable to poll next set of sample results. Possible timeout?");
+                Activator.getLogger().log(Level.WARNING, () -> "Unable to poll next set of sample results. Possible timeout? Vals recieved = " + recv_vals + ", Step count = "
+                        + step_count + ", last sample time = " + last_sample_time + " (" + InfluxDBUtil.toNanoLong(last_sample_time)
+                        + ") cur sample time " + cur_sample_time + " (" + InfluxDBUtil.toNanoLong(cur_sample_time) + ")");
                 return false;
             }
         }
@@ -241,6 +252,7 @@ public class ChunkReader extends InfluxDBSampleDecoder
         update_meta();
 
         Activator.getLogger().log(Level.FINER, () -> "sample step success: " + this.toString());
+        step_count++;
         return true;
     }
 

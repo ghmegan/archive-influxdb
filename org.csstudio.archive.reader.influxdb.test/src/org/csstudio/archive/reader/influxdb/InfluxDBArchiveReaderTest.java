@@ -48,7 +48,7 @@ import java.lang.Thread;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveReaderTest
 {
-    final private static Duration TIMERANGE = Duration.ofHours(10);
+    final private static Duration TIMERANGE = Duration.ofDays(10);
     final private static Duration WAVEFORM_TIMERANGE = Duration.ofMinutes(20);
 
     final private static int BUCKETS = 50;
@@ -223,14 +223,34 @@ public class InfluxDBArchiveReaderTest
         }
     }
 
-    final private static boolean dump = true;
+    final private static boolean dump = false;
     final private static int max_samples = 10000000;
 
 
 
-    /** Get raw data for scalar */
+    /** Get raw data for scalar
+     *
+     * Results from testing:
+     * Server:
+     *    - RHEL 7
+     *    - 8 core Intel i7-4790 3.6GHz
+     *    - 16GB 1600MHz DDR3 RAM
+     *    - 500GB 7200 RPM SATA Disk
+     *
+     *  Client:
+     *    - OSX 10.11
+     *    - 2.5 GHz Intel Core i7
+     *    - 16 GB 1600 MHz DDR3
+     *    - 512GB SSD storage
+     *
+     * Speed was
+     *
+     * Several different chunking sizes were tried in the raw sample iterator.
+     * There was no real difference in speed.
+     * Using JProfiler
+     * */
     @Test
-    public void testRawData() throws Exception
+    public void demoRawDataSpeedTest() throws Exception
     {
         if (reader == null)
             return;

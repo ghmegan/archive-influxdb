@@ -87,6 +87,8 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
             @Override
             public void accept(QueryResult result) {
                 sample_queue.add(result);
+                //Activator.getLogger().log(Level.FINE, () -> "Got chunk of sample vals size " + InfluxDBResults.getValueCount(result) + " for total size: " + sample_queue.size());
+                sample_queue.add(result);
             }});
 
         reader.getQueries().chunk_get_channel_metadata(metadata_chunk_size, channel_name, metadata_starttime, end, null,
