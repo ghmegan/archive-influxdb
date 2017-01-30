@@ -23,7 +23,6 @@ import org.diirt.vtype.ValueFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Ignore;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 //import org.junit.Ignore;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
@@ -239,7 +238,6 @@ public class InfluxDBArchiveWriterTest
      *   higher speeds, but might encounter problems. These tests did not have any such problems.
      */
 
-    @Ignore
     @Test
     public void demoWriteSpeedDouble() throws Exception
     {
@@ -261,12 +259,12 @@ public class InfluxDBArchiveWriterTest
         final long start = System.currentTimeMillis();
         long end = start;
         final long to_end = start + TEST_DURATION_SECS*1000L;
-        Instant stamp = Instant.now();
+        Instant stamp = Instant.now().minusMillis(100000000).plusNanos(100);
         do
         {
             for (int f = 0; f < FLUSH_COUNT; f++)
             {
-                stamp = stamp.plusNanos(100);
+                stamp = stamp.plusMillis(1);
                 writer.addSample(channel, new ArchiveVNumber(stamp, AlarmSeverity.NONE, "OK", display, vals[f]));
             }
             count += FLUSH_COUNT;

@@ -224,7 +224,7 @@ public class InfluxDBArchiveReaderTest
     }
 
     final private static boolean dump = false;
-    final private static int max_samples = 10000000;
+    final private static int max_samples = 1000000;
 
 
 
@@ -243,11 +243,15 @@ public class InfluxDBArchiveReaderTest
      *    - 16 GB 1600 MHz DDR3
      *    - 512GB SSD storage
      *
-     * Speed was
+     * Results:
+     * 1000000 samples in 2.834 seconds
+     * 352735 samples/sec
      *
      * Several different chunking sizes were tried in the raw sample iterator.
      * There was no real difference in speed.
-     * Using JProfiler
+     * Using JProfiler, the bulk of time was spent decoding text date/time into Instant values
+     * For now, this is a limitation of the java library,
+     * which does not correctly return very large long values (e.g. timestamp) as nonstring
      * */
     @Test
     public void demoRawDataSpeedTest() throws Exception
