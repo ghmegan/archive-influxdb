@@ -15,7 +15,7 @@ import org.csstudio.archive.config.SampleMode;
 @SuppressWarnings("nls")
 public class InfluxDBSampleMode extends SampleMode
 {
-    final private int id;
+    //final private int id;
 
     /** Initialize
      *  @param id InfluxDB ID
@@ -23,10 +23,10 @@ public class InfluxDBSampleMode extends SampleMode
      *  @param delta Value change threshold
      *  @param period (Expected) update period in seconds
      */
-    public InfluxDBSampleMode(final int id, final boolean monitor, final double delta, final double period)
+    public InfluxDBSampleMode(final boolean monitor, final double delta, final double period)
     {
         super(monitor, delta, period);
-        this.id = id;
+        //this.id = id;
     }
 
     /** @param name Scan mode name
@@ -37,9 +37,9 @@ public class InfluxDBSampleMode extends SampleMode
         return "Monitor".equalsIgnoreCase(name);
     }
 
-    /** @return InfluxDB ID */
-    public int getId()
-    {
-        return id;
-    }
+    //    /** @return InfluxDB ID */
+    //    public int getId()
+    //    {
+    //        return id;
+    //    }
 }

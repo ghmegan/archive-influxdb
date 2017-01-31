@@ -18,31 +18,38 @@ import org.csstudio.archive.config.SampleMode;
 @SuppressWarnings("nls")
 public class InfluxDBChannelConfig extends ChannelConfig
 {
-    final private int id;
+    final private int channel_id;
+    final private int group_id;
 
     /** Initialize
-     *  @param id Channel ID in InfluxDB
+     *  @param channel_id Channel ID in InfluxDB
      *  @param name Channel name
      *  @param sample_mode Sample mode
      *  @param last_sample_time Time stamp of last sample in archive or <code>null</code>
      */
-    public InfluxDBChannelConfig(final int id, final String name, final SampleMode sample_mode,
-            final Instant last_sample_time)
+    public InfluxDBChannelConfig(final int channel_id, final String name, final SampleMode sample_mode,
+            final Instant last_sample_time, final int group_id)
     {
         super(name, sample_mode, last_sample_time);
-        this.id = id;
+        this.channel_id = channel_id;
+        this.group_id = group_id;
     }
 
     /** @return InfluxDB id of channel */
-    public int getId()
+    public int getChannelId()
     {
-        return id;
+        return channel_id;
+    }
+
+    public int getGroupId()
+    {
+        return group_id;
     }
 
     /** @return Debug representation */
     @Override
     public String toString()
     {
-        return super.toString() + " (" + id + ")";
+        return super.toString() + " (" + channel_id + ")";
     }
 }

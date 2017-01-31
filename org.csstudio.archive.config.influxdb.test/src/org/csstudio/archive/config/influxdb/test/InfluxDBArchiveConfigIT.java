@@ -14,7 +14,7 @@ import org.csstudio.archive.config.ArchiveConfig;
 import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.EngineConfig;
 import org.csstudio.archive.config.GroupConfig;
-import org.csstudio.archive.config.rdb.InfluxDBArchiveConfig;
+import org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,14 +32,14 @@ public class InfluxDBArchiveConfigIT
     public void connect() throws Exception
     {
         final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_rdb_url");
-        final String user = settings.getString("archive_rdb_user");
-        final String schema = settings.getString("archive_rdb_schema");
-        final String password = settings.getString("archive_rdb_password");
+        final String url = settings.getString("archive_influxdb_url");
+        final String user = settings.getString("archive_influxdb_user");
+        final String schema = settings.getString("archive_influxdb_schema");
+        final String password = settings.getString("archive_influxdb_password");
         engine_name = settings.getString("archive_config");
         if (url == null  ||  user == null  ||  password == null  ||  engine_name == null)
         {
-            System.out.println("Skipping test, no archive_rdb_url, user, password");
+            System.out.println("Skipping test, no archive_influxdb_url, user, password");
             return;
         }
 

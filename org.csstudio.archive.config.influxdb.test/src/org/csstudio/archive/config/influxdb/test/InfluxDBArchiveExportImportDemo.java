@@ -16,9 +16,9 @@ import java.io.PrintStream;
 
 import org.csstudio.apputil.test.TestProperties;
 import org.csstudio.archive.config.EngineConfig;
-import org.csstudio.archive.config.rdb.InfluxDBArchiveConfig;
-import org.csstudio.archive.config.rdb.XMLExport;
-import org.csstudio.archive.config.rdb.XMLImport;
+import org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig;
+import org.csstudio.archive.config.influxdb.XMLExport;
+import org.csstudio.archive.config.influxdb.XMLImport;
 import org.junit.Test;
 
 /** JUnit demo of {@link XMLExport} and {@link XMLImport}
@@ -31,16 +31,16 @@ public class InfluxDBArchiveExportImportDemo
     public void testExport() throws Exception
     {
         final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_rdb_url");
-        final String user = settings.getString("archive_rdb_user");
-        final String password = settings.getString("archive_rdb_password");
-        final String schema = settings.getString("archive_rdb_schema");
+        final String url = settings.getString("archive_influxdb_url");
+        final String user = settings.getString("archive_influxdb_user");
+        final String password = settings.getString("archive_influxdb_password");
+        final String schema = settings.getString("archive_influxdb_schema");
         final String engine_name = settings.getString("archive_config");
         final String filename = settings.getString("tmp_file");
         if (url == null  ||  user == null  ||  password == null  ||  engine_name == null  ||
-            filename == null)
+                filename == null)
         {
-            System.out.println("Skipping test, no archive_rdb_url, user, password, tmp_file");
+            System.out.println("Skipping test, no archive_influxdb_url, user, password, tmp_file");
             return;
         }
 
@@ -65,14 +65,14 @@ public class InfluxDBArchiveExportImportDemo
     public void testDelete() throws Exception
     {
         final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_rdb_url");
-        final String user = settings.getString("archive_rdb_user");
-        final String password = settings.getString("archive_rdb_password");
+        final String url = settings.getString("archive_influxdb_url");
+        final String user = settings.getString("archive_influxdb_user");
+        final String password = settings.getString("archive_influxdb_password");
         final String engine_name = settings.getString("archive_config");
-        final String schema = settings.getString("archive_rdb_schema");
+        final String schema = settings.getString("archive_influxdb_schema");
         if (url == null  ||  user == null  ||  password == null  ||  engine_name == null)
         {
-            System.out.println("Skipping test, no archive_rdb_url, user, password");
+            System.out.println("Skipping test, no archive_influxdb_url, user, password");
             return;
         }
 
@@ -91,20 +91,31 @@ public class InfluxDBArchiveExportImportDemo
         }
     }
 
+    /**
+     * Archive configurations for accelerator (snapshot only)
+     * ics-srv02.ornl.gov:/usr/local/css/archive_configs/
+     *
+     * Beamlines (e.g. Mandi)
+     * bl11b-dassrv1.sns.gov:/home/controls/bl11b/Makefile
+     * archive:
+        css/build_arch.sh > css/bl11b_arch.xml
+     *
+     * @throws Exception
+     */
     @Test
     public void testImport() throws Exception
     {
         final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_rdb_url");
-        final String user = settings.getString("archive_rdb_user");
-        final String password = settings.getString("archive_rdb_password");
+        final String url = settings.getString("archive_influxdb_url");
+        final String user = settings.getString("archive_influxdb_user");
+        final String password = settings.getString("archive_influxdb_password");
         final String engine_name = settings.getString("archive_config");
-        final String schema = settings.getString("archive_rdb_schema");
+        final String schema = settings.getString("archive_influxdb_schema");
         final String filename = settings.getString("tmp_file");
         if (url == null  ||  user == null  ||  password == null  ||  engine_name == null ||
-            filename == null)
+                filename == null)
         {
-            System.out.println("Skipping test, no archive_rdb_url, user, password, filename");
+            System.out.println("Skipping test, no archive_influxdb_url, user, password, filename");
             return;
         }
 

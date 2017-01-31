@@ -290,7 +290,7 @@ public class XMLImport extends DefaultHandler
             {
                 // System.out.println(group.getName() + " - " + name);
                 // Check if channel is already in another group
-                final InfluxDBGroupConfig other_group = config.getChannelGroup(name);
+                final InfluxDBGroupConfig other_group = config.searchChannelGroup(name);
                 if (other_group != null)
                 {
                     final EngineConfig other_engine = config.getEngine(other_group);

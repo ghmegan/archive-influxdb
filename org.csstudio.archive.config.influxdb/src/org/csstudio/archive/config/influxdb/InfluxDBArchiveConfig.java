@@ -17,7 +17,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
 
 import org.csstudio.archive.config.ArchiveConfig;
 import org.csstudio.archive.config.ChannelConfig;
@@ -26,8 +29,8 @@ import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.SampleMode;
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.vtype.TimestampHelper;
-import org.csstudio.platform.utility.influxdb.InfluxDBUtil;
-import org.csstudio.platform.utility.influxdb.InfluxDBUtil.Dialect;
+//import org.csstudio.platform.utility.influxdb.InfluxDBUtil;
+//import org.csstudio.platform.utility.influxdb.InfluxDBUtil.Dialect;
 
 /** InfluxDB implementation (Oracle, MySQL, PostgreSQL) of {@link ArchiveConfig}
  *
@@ -41,20 +44,32 @@ import org.csstudio.platform.utility.influxdb.InfluxDBUtil.Dialect;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveConfig implements ArchiveConfig
 {
-    /** InfluxDB connection */
-    private InfluxDBUtil influxdb;
+    //    /** InfluxDB connection */
+    //    private InfluxDBUtil influxdb;
+    //
+    //    /** SQL statements */
+    //    private SQL sql;
 
-    /** SQL statements */
-    private SQL sql;
+    //    /** Numeric ID of 'monitor' mode stored in InfluxDB */
+    //    private int monitor_mode_id = -1;
+    //
+    //    /** Numeric ID of 'scan' mode stored in InfluxDB */
+    //    private int scan_mode_id = -1;
 
-    /** Numeric ID of 'monitor' mode stored in InfluxDB */
-    private int monitor_mode_id = -1;
+    //    /** Re-used statement for selecting time of last archived sample of a channel */
+    //    private PreparedStatement last_sample_time_statement;
 
-    /** Numeric ID of 'scan' mode stored in InfluxDB */
-    private int scan_mode_id = -1;
+    /** Configured engines */
+    //final private List<EngineConfig> engines = new ArrayList<EngineConfig>();
+    //final private Map<String, Integer> engine_idx = new HashMap<String, Integer>();
+    final private Map<Integer, EngineConfig> engines_id2obj = new HashMap<Integer, EngineConfig>();
+    final private Map<String, Integer> engines_name2id = new HashMap<String, Integer>();
 
-    /** Re-used statement for selecting time of last archived sample of a channel */
-    private PreparedStatement last_sample_time_statement;
+    private int next_engine_id;
+
+    private int next_group_id;
+
+    private int next_channel_id;
 
     /** Initialize.
      *  This constructor will be invoked when an {@link ArchiveConfig}
@@ -63,77 +78,69 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      */
     public InfluxDBArchiveConfig() throws Exception
     {
-        this(InfluxDBArchivePreferences.getURL(), InfluxDBArchivePreferences.getUser(),
-                InfluxDBArchivePreferences.getPassword(), InfluxDBArchivePreferences.getSchema());
+        next_group_id = 100;
+        next_engine_id = 100;
+        next_channel_id = 100;
+        //        this(InfluxDBArchivePreferences.getURL(), InfluxDBArchivePreferences.getUser(),
+        //                InfluxDBArchivePreferences.getPassword(), InfluxDBArchivePreferences.getSchema());
     }
 
-    /** Initialize.
-     *  This constructor can be invoked by test code.
-     *  @param url InfluxDB URL
-     *  @param user .. user name
-     *  @param password .. password
-     *  @param schema Schema/table prefix, ending in ".". May be empty
-     *  @throws Exception on error, for example InfluxDB connection error
-     */
-    public InfluxDBArchiveConfig(final String url, final String user, final String password,
-            final String schema) throws Exception
-    {
-        influxdb = InfluxDBUtil.connect(url, user, password, false);
-        sql = new SQL(influxdb.getDialect(), schema);
-        loadSampleModes();
-    }
+    //    /** Initialize.
+    //     *  This constructor can be invoked by test code.
+    //     *  @param url InfluxDB URL
+    //     *  @param user .. user name
+    //     *  @param password .. password
+    //     *  @param schema Schema/table prefix, ending in ".". May be empty
+    //     *  @throws Exception on error, for example InfluxDB connection error
+    //     */
+    //    public InfluxDBArchiveConfig(final String url, final String user, final String password,
+    //            final String schema) throws Exception
+    //    {
+    //        influxdb = InfluxDBUtil.connect(url, user, password, false);
+    //        sql = new SQL(influxdb.getDialect(), schema);
+    //        loadSampleModes();
+    //    }
 
     /** {@inheritDoc} */
     @Override
     public EngineConfig[] getEngines() throws Exception
     {
-        final List<EngineConfig> engines = new ArrayList<EngineConfig>();
-        try
-        (
-            final Statement statement = influxdb.getConnection().createStatement();
-            final ResultSet result = statement.executeQuery(sql.smpl_eng_list);
-        )
-        {
-            while (result.next())
-                engines.add(new InfluxDBEngineConfig(result.getInt(1),
-                        result.getString(2), result.getString(3), result.getString(4)));
-        }
-        return engines.toArray(new EngineConfig[engines.size()]);
+        return engines_id2obj.values().toArray(new EngineConfig[engines_id2obj.size()]);
     }
 
-    /** Load InfluxDB information about sample modes */
-    private void loadSampleModes() throws Exception
-    {
-        try
-        (
-            final Statement statement = influxdb.getConnection().createStatement();
-            final ResultSet result = statement.executeQuery(sql.sample_mode_sel);
-        )
-        {
-            while (result.next())
-            {
-                final String name = result.getString(2);
-                if (InfluxDBSampleMode.determineMonitor(name))
-                    monitor_mode_id = result.getInt(1);
-                else
-                    scan_mode_id = result.getInt(1);
-            }
-        }
-        if (monitor_mode_id < 0  ||  scan_mode_id < 0)
-            throw new Exception("Undefined sample modes");
-    }
+    //    /** Load InfluxDB information about sample modes */
+    //    private void loadSampleModes() throws Exception
+    //    {
+    //        try
+    //        (
+    //            final Statement statement = influxdb.getConnection().createStatement();
+    //            final ResultSet result = statement.executeQuery(sql.sample_mode_sel);
+    //        )
+    //        {
+    //            while (result.next())
+    //            {
+    //                final String name = result.getString(2);
+    //                if (InfluxDBSampleMode.determineMonitor(name))
+    //                    monitor_mode_id = result.getInt(1);
+    //                else
+    //                    scan_mode_id = result.getInt(1);
+    //            }
+    //        }
+    //        if (monitor_mode_id < 0  ||  scan_mode_id < 0)
+    //            throw new Exception("Undefined sample modes");
+    //    }
 
-    /** Determine sample mode
-     *  @param sample_mode_id Sample mode ID from InfluxDB
-     *  @param sample_value Sample value, i.e. monitor threshold
-     *  @param period Scan period, estimated monitor period
-     *  @return {@link SampleMode}
-     *  @throws Exception
-     */
-    private InfluxDBSampleMode getSampleMode(final int sample_mode_id, final double sample_value, final double period) throws Exception
-    {
-        return new InfluxDBSampleMode(sample_mode_id, sample_mode_id == monitor_mode_id, sample_value, period);
-    }
+    //    /** Determine sample mode
+    //     *  @param sample_mode_id Sample mode ID from InfluxDB
+    //     *  @param sample_value Sample value, i.e. monitor threshold
+    //     *  @param period Scan period, estimated monitor period
+    //     *  @return {@link SampleMode}
+    //     *  @throws Exception
+    //     */
+    //    private InfluxDBSampleMode getSampleMode(final int sample_mode_id, final double sample_value, final double period) throws Exception
+    //    {
+    //        return new InfluxDBSampleMode(sample_mode_id, sample_mode_id == monitor_mode_id, sample_value, period);
+    //    }
 
     /** Determine sample mode
      *  @param sample_mode_id Sample mode ID from InfluxDB
@@ -144,23 +151,24 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      */
     public InfluxDBSampleMode getSampleMode(final boolean monitor, final double sample_value, final double period) throws Exception
     {
-        return new InfluxDBSampleMode(monitor ? monitor_mode_id : scan_mode_id, monitor, sample_value, period);
+        //return new InfluxDBSampleMode(monitor ? monitor_mode_id : scan_mode_id, monitor, sample_value, period);
+        return new InfluxDBSampleMode(monitor, sample_value, period);
     }
 
-    /** @return Next available engine ID */
-    private int getNextEngineId() throws Exception
-    {
-        try
-        (
-            final Statement statement = influxdb.getConnection().createStatement();
-            final ResultSet result = statement.executeQuery(sql.smpl_eng_next_id);
-        )
-        {
-            if (result.next())
-                return result.getInt(1) + 1;
-            return 1;
-        }
-    }
+    //    /** @return Next available engine ID */
+    //    private int getNextEngineId() throws Exception
+    //    {
+    //        try
+    //        (
+    //                final Statement statement = influxdb.getConnection().createStatement();
+    //                final ResultSet result = statement.executeQuery(sql.smpl_eng_next_id);
+    //                )
+    //        {
+    //            if (result.next())
+    //                return result.getInt(1) + 1;
+    //            return 1;
+    //        }
+    //    }
 
     /** Create new engine config in InfluxDB
      *  @param engine_name
@@ -172,50 +180,29 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     public EngineConfig createEngine(final String engine_name, final String description,
             final String engine_url) throws Exception
     {
-        final int id = getNextEngineId();
-        influxdb.getConnection().setAutoCommit(false);
-        try
-        (
-            final PreparedStatement statement =
-                influxdb.getConnection().prepareStatement(sql.smpl_eng_insert);
-        )
+        if (engines_name2id.get(engine_name) != null)
         {
-            statement.setInt(1, id);
-            statement.setString(2, engine_name);
-            statement.setString(3, description);
-            statement.setString(4, engine_url);
-            statement.executeUpdate();
-            influxdb.getConnection().commit();
+            throw new Exception ("Engine " + engine_name + " already exists.");
         }
-        catch (Exception ex)
-        {
-            influxdb.getConnection().rollback();
-            throw ex;
-        }
-        finally
-        {
-            influxdb.getConnection().setAutoCommit(true);
-        }
-        return new InfluxDBEngineConfig(id, engine_name, description, engine_url);
+
+        final int engine_id = next_engine_id;
+        next_engine_id++;
+        EngineConfig engine = new InfluxDBEngineConfig(engine_id, engine_name, description, engine_url);
+        engines_name2id.put(engine_name, engine_id);
+        engines_id2obj.put(engine_id, engine);
+        return engine;
     }
 
     /** {@inheritDoc} */
     @Override
     public EngineConfig findEngine(final String name) throws Exception
     {
-        try
-        (
-            final PreparedStatement statement =
-                influxdb.getConnection().prepareStatement(sql.smpl_eng_sel_by_name);
-        )
+        Integer id = engines_name2id.get(name);
+        if (engines_name2id.get(name) == null)
         {
-            statement.setString(1, name);
-            final ResultSet res = statement.executeQuery();
-            if (res.next())
-                return new InfluxDBEngineConfig(res.getInt(1), name,
-                        res.getString(2), res.getString(3));
+            return null;
         }
-        return null;
+        return engines_id2obj.get(id);
     }
 
     /** Get engine for group
@@ -225,21 +212,13 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      */
     public EngineConfig getEngine(final InfluxDBGroupConfig group) throws Exception
     {
-        try
-        (
-            final PreparedStatement statement = influxdb.getConnection().prepareStatement(sql.smpl_eng_sel_by_group_id);
-        )
+        final EngineConfig engine = engines_id2obj.get(group.getEngineId());
+        if (engine == null)
         {
-            statement.setInt(1, group.getId());
-            final ResultSet result = statement.executeQuery();
-            final EngineConfig engine;
-            if (result.next())
-                engine = new EngineConfig(result.getString(1), result.getString(2), result.getString(3));
-            else
-                engine = null;
-            result.close();
-            return engine;
+            Activator.getLogger().log(Level.WARNING, () -> "Could not get engine for group "
+                    + group.getName() + ", engine " + group.getEngineId());
         }
+        return engine;
     }
 
     /** Delete engine info, all the groups under it, and clear all links
@@ -247,71 +226,17 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @param engine Engine info to remove
      *  @throws Exception on error
      */
-    public void deleteEngine(final EngineConfig engine) throws Exception
+    public void deleteEngine(final EngineConfig in_engine) throws Exception
     {
-        // Unlink all channels from engine's groups
-        final int engine_id = ((InfluxDBEngineConfig)engine).getId();
-        final Connection connection = influxdb.getConnection();
-        connection.setAutoCommit(false);
-        try
-        {
-            try
-            (
-                final PreparedStatement statement = connection.prepareStatement(
-                            sql.channel_clear_grp_for_engine);
-            )
-            {
-                statement.setInt(1, engine_id);
-                statement.executeUpdate();
-            }
-            // Delete all groups under engine...
-            try
-            (
-                final PreparedStatement statement = connection.prepareStatement(
-                        sql.chan_grp_delete_by_engine_id);
-            )
-            {
-                statement.setInt(1, engine_id);
-                statement.executeUpdate();
-            }
-            // Delete Engine entry
-            try
-            (
-                final PreparedStatement statement = connection.prepareStatement(
-                        sql.smpl_eng_delete);
-            )
-            {
-                statement.setInt(1, engine_id);
-                statement.executeUpdate();
-            }
-            connection.commit();
-        }
-        catch (Exception ex)
-        {
-            connection.rollback();
-            throw ex;
-        }
-        finally
-        {
-            connection.setAutoCommit(true);
-        }
-    }
+        InfluxDBEngineConfig engine = ((InfluxDBEngineConfig)in_engine);
+        final int engine_id = engine.getId();
+        final String engine_name = engine.getName();
 
-    /** @return Next available group ID
-     *  @throws Exception on error
-     */
-    private int getNextGroupId() throws Exception
-    {
-        try
-        (
-            final Statement statement = influxdb.getConnection().createStatement();
-            final ResultSet result = statement.executeQuery(sql.chan_grp_next_id);
-        )
-        {
-            if (result.next())
-                return result.getInt(1) + 1;
-            return 1;
-        }
+        if (!engines_id2obj.containsKey(engine_id))
+            throw new Exception("Cannot delete unknown engine " + engine_name);
+
+        engines_name2id.remove(engine_name);
+        engines_id2obj.remove(engine_id);
     }
 
     /** @param engine Engine to which to add group
@@ -321,30 +246,11 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      */
     public InfluxDBGroupConfig addGroup(final EngineConfig engine, final String name) throws Exception
     {
-        final Connection connection = influxdb.getConnection();
-        final int group_id = getNextGroupId();
-        connection.setAutoCommit(false);
-        try
-        (
-            final PreparedStatement statement = connection.prepareStatement(sql.chan_grp_insert);
-        )
-        {
-            statement.setInt(1, group_id);
-            statement.setString(2, name);
-            statement.setInt(3, ((InfluxDBEngineConfig)engine).getId());
-            statement.executeUpdate();
-            connection.commit();
-        }
-        catch (Exception ex)
-        {
-            connection.rollback();
-            throw ex;
-        }
-        finally
-        {
-            connection.setAutoCommit(true);
-        }
-        return new InfluxDBGroupConfig(group_id, name, null);
+        final int group_id = next_group_id;
+        InfluxDBGroupConfig group = ((InfluxDBEngineConfig) engine).addGroup(group_id, name, null);
+        if (group != null)
+            next_group_id++;
+        return group;
     }
 
     /** {@inheritDoc} */
@@ -352,69 +258,24 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     public GroupConfig[] getGroups(final EngineConfig engine) throws Exception
     {
         final InfluxDBEngineConfig influxdb_engine = (InfluxDBEngineConfig) engine;
-        try
-        (
-            final PreparedStatement statement =
-                influxdb.getConnection().prepareStatement(sql.chan_grp_sel_by_eng_id);
-        )
-        {
-            statement.setInt(1, influxdb_engine.getId());
-            final ResultSet result = statement.executeQuery();
-            final List<GroupConfig> groups = new ArrayList<GroupConfig>();
-            while (result.next())
-            {
-                // grp_id, name, enabling_chan_id, retent_id
-                final int enabling_chan_id = result.getInt(3);
-                final String enabling_channel;
-                if (enabling_chan_id > 0)
-                    enabling_channel = getChannelName(enabling_chan_id);
-                else
-                        enabling_channel = null;
-                final GroupConfig group = new InfluxDBGroupConfig(
-                        result.getInt(1),
-                        result.getString(2),
-                        enabling_channel);
-                groups.add(group);
-            }
-            result.close();
-            final GroupConfig grp_arr[] = groups.toArray(new GroupConfig[groups.size()]);
-            // Sort by group name in Java.
-            // SQL should already give sorted result, but handling of upper/lowercase
-            // names seems to differ between Oracle and MySQL, resulting in
-            // files that were hard to compare
-            Arrays.sort(grp_arr, new Comparator<GroupConfig>()
-            {
-                @Override
-                public int compare(final GroupConfig a, final GroupConfig b)
-                {
-                    return a.getName().compareTo(b.getName());
-                }
-            });
-            return grp_arr;
-        }
+        return influxdb_engine.getGroupsArray();
     }
 
     /** @param channel_name Name of a channel
      *  @return {@link GroupConfig} for that channel or <code>null</code>
      *  @throws Exception on error
      */
-    public InfluxDBGroupConfig getChannelGroup(final String channel_name) throws Exception
+    public InfluxDBGroupConfig searchChannelGroup(final String channel_name) throws Exception
     {
-        try
-        (
-            final PreparedStatement statement = influxdb.getConnection().prepareStatement(sql.chan_grp_sel_by_channel);
-        )
+        for (EngineConfig engine : engines_id2obj.values())
         {
-            statement.setString(1, channel_name);
-            final ResultSet result = statement.executeQuery();
-            final InfluxDBGroupConfig group;
-            if (result.next())
-                group = new InfluxDBGroupConfig(result.getInt(1), result.getString(2), null);
-            else
-                group = null;
-            result.close();
-            return group;
+            for (GroupConfig group : ((InfluxDBEngineConfig)engine).getGroupObjs())
+            {
+                if (((InfluxDBGroupConfig)group).containsChannel(channel_name))
+                    return ((InfluxDBGroupConfig)group);
+            }
         }
+        return null;
     }
 
     /** Set a group's enabling channel
@@ -424,50 +285,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      */
     public void setEnablingChannel(final InfluxDBGroupConfig group, final InfluxDBChannelConfig channel) throws Exception
     {
-        final Connection connection = influxdb.getConnection();
-        connection.setAutoCommit(false);
-        try
-        (
-            final PreparedStatement statement = connection.prepareStatement(sql.chan_grp_set_enable_channel);
-        )
-        {
-            if (channel == null)
-                statement.setNull(1, Types.INTEGER);
-            else
-                statement.setInt(1, channel.getId());
-            statement.setInt(2, group.getId());
-            final int rows = statement.executeUpdate();
-            if (rows != 1)
-                throw new Exception("Setting enabling channel of " + group + " to " + channel +
-                        " changed " + rows + " rows instead of 1");
-            connection.commit();
-        }
-        catch (Exception ex)
-        {
-            connection.rollback();
-            throw ex;
-        }
-        finally
-        {
-            connection.setAutoCommit(true);
-        }
-    }
-
-    /** @return Next available channel ID
-     *  @throws Exception on error
-     */
-    private int getNextChannelId() throws Exception
-    {
-        try
-        (
-            final Statement statement = influxdb.getConnection().createStatement();
-            final ResultSet result = statement.executeQuery(sql.channel_next_id);
-        )
-        {
-            if (result.next())
-                return result.getInt(1) + 1;
-            return 1;
-        }
+        group.setEnablingChannel(channel);
     }
 
     /** Add a channel.
@@ -476,66 +294,20 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  to a sample engine's group, or it's attached to a different group.
      *
      *  @param group {@link InfluxDBGroupConfig} to which to add the channel
-     *  @param name Name of channel
+     *  @param channel_name Name of channel
      *  @param mode Sample mode
      *  @return {@link InfluxDBChannelConfig}
      *  @throws Exception on error
      */
-    public InfluxDBChannelConfig addChannel(final InfluxDBGroupConfig group, final String name, final InfluxDBSampleMode mode) throws Exception
+    public InfluxDBChannelConfig addChannel(final InfluxDBGroupConfig group, final String channel_name, final InfluxDBSampleMode mode) throws Exception
     {
-        boolean new_channel = true;
-        int channel_id = -1;
-
-        final Connection connection = influxdb.getConnection();
-        connection.setAutoCommit(false);
-        try
+        final int channel_id = next_channel_id;
+        InfluxDBChannelConfig channel = group.addChannel(channel_id, channel_name, mode);
+        if (channel != null)
         {
-            // Check for existing channel
-            try
-            (
-                final PreparedStatement statement = connection.prepareStatement(sql.channel_sel_by_name);
-            )
-            {
-                statement.setString(1, name);
-                final ResultSet result = statement.executeQuery();
-                if (result.next())
-                {
-                    channel_id = result.getInt(1);
-                    new_channel = false;
-                }
-                result.close();
-            }
-
-            if (new_channel)
-                channel_id = getNextChannelId();
-
-            try
-            (
-                final PreparedStatement statement = connection.prepareStatement(new_channel ? sql.channel_insert : sql.channel_update);
-            )
-            {    // grp_id, name, smpl_mode_id, smpl_val, smpl_per, channel_id
-                statement.setInt(1, group.getId());
-                statement.setString(2, name);
-                statement.setInt(3, mode.getId());
-                statement.setDouble(4, mode.getDelta());
-                statement.setDouble(5, mode.getPeriod());
-                statement.setInt(6, channel_id);
-                final int rows = statement.executeUpdate();
-                if (rows != 1)
-                    throw new Exception("Insert of " + group.getName() + " - " + name + " updated " + rows + " rows");
-                connection.commit();
-            }
-            catch (Exception ex)
-            {
-                connection.rollback();
-                throw ex;
-            }
+            next_channel_id++;
         }
-        finally
-        {
-            connection.setAutoCommit(true);
-        }
-        return new InfluxDBChannelConfig(channel_id, name, mode, null);
+        return channel;
     }
 
     /** {@inheritDoc} */
@@ -546,22 +318,22 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
         final List<ChannelConfig> channels = new ArrayList<ChannelConfig>();
         try
         (
-            final PreparedStatement statement =
+                final PreparedStatement statement =
                 influxdb.getConnection().prepareStatement(sql.channel_sel_by_group_id);
-        )
+                )
         {
-            statement.setInt(1, influxdb_group.getId());
+            statement.setInt(1, influxdb_group.getGroupId());
             final ResultSet result = statement.executeQuery();
             while (result.next())
             {   // channel_id, name, smpl_mode_id, smpl_val, smpl_per
                 final int id = result.getInt(1);
                 final SampleMode sample_mode =
-                    getSampleMode(result.getInt(3), result.getDouble(4), result.getDouble(5));
+                        getSampleMode(result.getInt(3), result.getDouble(4), result.getDouble(5));
                 Instant last_sample_time = null;
                 if (!skip_last)
-                     last_sample_time = getLastSampleTime(id);
+                    last_sample_time = getLastSampleTime(id);
                 channels.add(new InfluxDBChannelConfig(id, result.getString(2),
-                                                  sample_mode, last_sample_time));
+                        sample_mode, last_sample_time));
             }
             result.close();
         }
@@ -590,9 +362,9 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     {
         try
         (
-            final PreparedStatement statement =
+                final PreparedStatement statement =
                 influxdb.getConnection().prepareStatement(sql.channel_sel_by_id);
-        )
+                )
         {
             statement.setInt(1, channel_id);
             final ResultSet result = statement.executeQuery();
@@ -604,59 +376,60 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
         }
     }
 
-    /** Obtain time stamp of last sample in archive
-     *  @param channel_id Channel's InfluxDB ID
-     *  @return Time stamp or <code>null</code> if not in archive, yet
-     *  @throws Exception on InfluxDB error
-     */
-    private Instant getLastSampleTime(final int channel_id) throws Exception
-    {
-        // This statement has a surprisingly complex execution plan for partitioned
-        // Oracle setups, so re-use it
-        if (last_sample_time_statement == null)
-            last_sample_time_statement = influxdb.getConnection().prepareStatement(sql.sel_last_sample_time_by_id);
-        last_sample_time_statement.setInt(1, channel_id);
-        try
-        (
-            final ResultSet result = last_sample_time_statement.executeQuery();
-        )
-        {
-            if (result.next())
-            {
-                final Timestamp stamp = result.getTimestamp(1);
-                if (stamp == null)
-                    return null;
+    //TODO: Add ability to connect to Database and query last sample time
+    //    /** Obtain time stamp of last sample in archive
+    //     *  @param channel_id Channel's InfluxDB ID
+    //     *  @return Time stamp or <code>null</code> if not in archive, yet
+    //     *  @throws Exception on InfluxDB error
+    //     */
+    //    private Instant getLastSampleTime(final int channel_id) throws Exception
+    //    {
+    //        // This statement has a surprisingly complex execution plan for partitioned
+    //        // Oracle setups, so re-use it
+    //        if (last_sample_time_statement == null)
+    //            last_sample_time_statement = influxdb.getConnection().prepareStatement(sql.sel_last_sample_time_by_id);
+    //        last_sample_time_statement.setInt(1, channel_id);
+    //        try
+    //        (
+    //                final ResultSet result = last_sample_time_statement.executeQuery();
+    //                )
+    //        {
+    //            if (result.next())
+    //            {
+    //                final Timestamp stamp = result.getTimestamp(1);
+    //                if (stamp == null)
+    //                    return null;
+    //
+    //                if (influxdb.getDialect() != Dialect.Oracle)
+    //                {
+    //                    // For Oracle, the time stamp is indeed the last time.
+    //                    // For others, it's only the seconds, not the nanoseconds.
+    //                    // Since this time stamp is only used to avoid going back in time,
+    //                    // add a second to assert that we are _after_ the last sample
+    //                    stamp.setTime(stamp.getTime() + 1000);
+    //                }
+    //                return TimestampHelper.fromSQLTimestamp(stamp);
+    //            }
+    //        }
+    //        return null;
+    //    }
 
-                if (influxdb.getDialect() != Dialect.Oracle)
-                {
-                    // For Oracle, the time stamp is indeed the last time.
-                    // For others, it's only the seconds, not the nanoseconds.
-                    // Since this time stamp is only used to avoid going back in time,
-                    // add a second to assert that we are _after_ the last sample
-                    stamp.setTime(stamp.getTime() + 1000);
-                }
-                return TimestampHelper.fromSQLTimestamp(stamp);
-            }
-        }
-        return null;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public void close()
-    {
-        if (last_sample_time_statement != null)
-        {
-            try
-            {
-                last_sample_time_statement.close();
-            }
-            catch (Exception ex)
-            {
-                // Ignore, closing down anyway
-            }
-            last_sample_time_statement = null;
-        }
-        influxdb.close();
-    }
+    //    /** {@inheritDoc} */
+    //    @Override
+    //    public void close()
+    //    {
+    //        if (last_sample_time_statement != null)
+    //        {
+    //            try
+    //            {
+    //                last_sample_time_statement.close();
+    //            }
+    //            catch (Exception ex)
+    //            {
+    //                // Ignore, closing down anyway
+    //            }
+    //            last_sample_time_statement = null;
+    //        }
+    //        influxdb.close();
+    //    }
 }
