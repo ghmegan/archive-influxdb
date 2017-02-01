@@ -1,7 +1,10 @@
 package org.csstudio.archive.influxdb;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Result;
 import org.influxdb.dto.QueryResult.Series;
@@ -137,6 +140,24 @@ public class InfluxDBResults
         return vals.get(validx).get(cols.indexOf(colname));
     }
 
+    public static Instant getTimestamp(QueryResult results)
+    {
+        //Activator.getLogger().log(Level.FINE, "Results from query: {0}", InfluxDBResults.toString(results));
+
+        final Instant ret;
+        try
+        {
+            final Series series0 = results.getResults().get(0).getSeries().get(0);
+            //final String ts = (String) InfluxDBResults.getValue(series0, "time", 0);
+            ret = InfluxDBUtil.fromInfluxDBTimeFormat(InfluxDBResults.getValue(series0, "time", 0));
+        }
+        catch (Exception e)
+        {
+            Activator.getLogger().log(Level.FINE, () -> "Could not get timestamp from results :" + InfluxDBResults.toString(results));
+            return null;
+        }
+        return ret;
+    }
 
     public static TableBuilder makeSeriesTable(List<String> cols, List<List<Object>> all_vals)
     {

@@ -44,13 +44,10 @@ import org.diirt.vtype.VType;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveWriter implements ArchiveWriter
 {
-    //TODO: timeout?
-    //final private int SQL_TIMEOUT_SECS = InfluxDBArchivePreferences.getSQLTimeoutSecs();
-
-    /** RDB connection */
+    /** InfluxDB connection */
     final private InfluxDB influxdb;
 
-    /** SQL statements */
+    /** InfluxDB statements */
     final private InfluxDBQueries influxQuery;
 
     /** Cache of channels by name */

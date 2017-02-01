@@ -35,6 +35,11 @@ public class InfluxDBChannelConfig extends ChannelConfig
         this.group_id = group_id;
     }
 
+    public InfluxDBChannelConfig cloneReplaceSampleTime(final Instant new_last_sample_time)
+    {
+        return new InfluxDBChannelConfig(this.channel_id, this.getName(), this.getSampleMode(), new_last_sample_time, this.group_id);
+    }
+
     /** @return InfluxDB id of channel */
     public int getChannelId()
     {

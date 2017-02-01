@@ -7,6 +7,7 @@
  ******************************************************************************/
 package org.csstudio.archive.config.influxdb;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -16,6 +17,11 @@ import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.EngineConfig;
 import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.SampleMode;
+import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
+import org.csstudio.archive.influxdb.InfluxDBQueries;
+import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.influxdb.InfluxDBUtil;
+import org.influxdb.InfluxDB;
 
 /** InfluxDB implementation of {@link ArchiveConfig}
  *
@@ -28,18 +34,23 @@ import org.csstudio.archive.config.SampleMode;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveConfig implements ArchiveConfig
 {
-    //    /** InfluxDB connection */
-    //    private InfluxDBUtil influxdb;
-    //
+    /** InfluxDB connection */
+    final private InfluxDB influxdb;
 
-    /** Configured engines */
+    /** InfluxDB statements */
+    final private InfluxDBQueries influxQuery;
+
+    /** Configured engines mapped by unique configuration id */
     final private Map<Integer, EngineConfig> engines_id2obj = new HashMap<Integer, EngineConfig>();
+
+    /** Configured engines mapping of name to unique configuration id */
     final private Map<String, Integer> engines_name2id = new HashMap<String, Integer>();
 
+    /** Next unique engine id to assign */
     private int next_engine_id;
-
+    /** Next unique group id to assign */
     private int next_group_id;
-
+    /** Next unique channel id to assign */
     private int next_channel_id;
 
     /** Initialize.
@@ -49,29 +60,27 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      */
     public InfluxDBArchiveConfig() throws Exception
     {
+        this(InfluxDBArchivePreferences.getURL(), InfluxDBArchivePreferences.getUser(),
+                InfluxDBArchivePreferences.getPassword());
+    }
+
+    /** Initialize.
+     *  This constructor can be invoked by test code.
+     *  @param url InfluxDB URL
+     *  @param user .. user name
+     *  @param password .. password
+     *  @param schema Schema/table prefix, ending in ".". May be empty
+     *  @throws Exception on error, for example InfluxDB connection error
+     */
+    public InfluxDBArchiveConfig(final String url, final String user, final String password) throws Exception
+    {
         next_group_id = 100;
         next_engine_id = 100;
         next_channel_id = 100;
-        //        this(InfluxDBArchivePreferences.getURL(), InfluxDBArchivePreferences.getUser(),
-        //                InfluxDBArchivePreferences.getPassword(), InfluxDBArchivePreferences.getSchema());
-    }
 
-    //TODO: we need an influxdb connection to get last sample times for channels
-    //    /** Initialize.
-    //     *  This constructor can be invoked by test code.
-    //     *  @param url InfluxDB URL
-    //     *  @param user .. user name
-    //     *  @param password .. password
-    //     *  @param schema Schema/table prefix, ending in ".". May be empty
-    //     *  @throws Exception on error, for example InfluxDB connection error
-    //     */
-    //    public InfluxDBArchiveConfig(final String url, final String user, final String password,
-    //            final String schema) throws Exception
-    //    {
-    //        influxdb = InfluxDBUtil.connect(url, user, password, false);
-    //        sql = new SQL(influxdb.getDialect(), schema);
-    //        loadSampleModes();
-    //    }
+        influxdb = InfluxDBUtil.connect(url, user, password);
+        influxQuery = new InfluxDBQueries(influxdb);
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -225,7 +234,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     public InfluxDBChannelConfig addChannel(final InfluxDBGroupConfig group, final String channel_name, final InfluxDBSampleMode mode) throws Exception
     {
         final int channel_id = next_channel_id;
-        InfluxDBChannelConfig channel = group.addChannel(channel_id, channel_name, mode);
+        InfluxDBChannelConfig channel = group.addChannel(channel_id, channel_name, mode, null);
         if (channel != null)
         {
             next_channel_id++;
@@ -238,17 +247,30 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     public ChannelConfig[] getChannels(final GroupConfig group, final boolean skip_last) throws Exception
     {
         final InfluxDBGroupConfig influxdb_group = (InfluxDBGroupConfig) group;
-        final ChannelConfig[] chan_arr = influxdb_group.getChannelArray();
 
-        //Instant last_sample_time = null;
-        //TODO: Add ability to connect to Database and query last sample time
-        //if (!skip_last)
-        //  last_sample_time = getLastSampleTime(id);
+        if (skip_last)
+        {
+            return influxdb_group.getChannelArray();
+        }
 
-        return chan_arr;
+        final ChannelConfig[] old_channels = influxdb_group.getChannelArray();
+
+        for (ChannelConfig channel : old_channels)
+        {
+            final Instant last_sample_time = InfluxDBResults.getTimestamp(influxQuery.get_newest_channel_samples(channel.getName(), null, null, 1L));
+            if (last_sample_time == null)
+            {
+                Activator.getLogger().log(Level.WARNING, "Failed to get last sample time for channel " + channel.getName());
+            }
+            else if (!last_sample_time.equals(channel.getLastSampleTime()))
+            {
+                influxdb_group.updateChannelLastTime(channel.getName(), last_sample_time);
+            }
+        }
+        return influxdb_group.getChannelArray();
     }
 
-    //    /** @param channel_id Channel ID in InfluxDB
+    //    /** @param channel_id Channel ID in config
     //     *  @return Name of channel
     //     *  @throws Exception on error
     //     */
@@ -270,60 +292,10 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     //        }
     //    }
 
-
-    //    /** Obtain time stamp of last sample in archive
-    //     *  @param channel_id Channel's InfluxDB ID
-    //     *  @return Time stamp or <code>null</code> if not in archive, yet
-    //     *  @throws Exception on InfluxDB error
-    //     */
-    //    private Instant getLastSampleTime(final int channel_id) throws Exception
-    //    {
-    //        // This statement has a surprisingly complex execution plan for partitioned
-    //        // Oracle setups, so re-use it
-    //        if (last_sample_time_statement == null)
-    //            last_sample_time_statement = influxdb.getConnection().prepareStatement(sql.sel_last_sample_time_by_id);
-    //        last_sample_time_statement.setInt(1, channel_id);
-    //        try
-    //        (
-    //                final ResultSet result = last_sample_time_statement.executeQuery();
-    //                )
-    //        {
-    //            if (result.next())
-    //            {
-    //                final Timestamp stamp = result.getTimestamp(1);
-    //                if (stamp == null)
-    //                    return null;
-    //
-    //                if (influxdb.getDialect() != Dialect.Oracle)
-    //                {
-    //                    // For Oracle, the time stamp is indeed the last time.
-    //                    // For others, it's only the seconds, not the nanoseconds.
-    //                    // Since this time stamp is only used to avoid going back in time,
-    //                    // add a second to assert that we are _after_ the last sample
-    //                    stamp.setTime(stamp.getTime() + 1000);
-    //                }
-    //                return TimestampHelper.fromSQLTimestamp(stamp);
-    //            }
-    //        }
-    //        return null;
-    //    }
-
     /** {@inheritDoc} */
     @Override
     public void close()
     {
-        //        if (last_sample_time_statement != null)
-        //        {
-        //            try
-        //            {
-        //                last_sample_time_statement.close();
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                // Ignore, closing down anyway
-        //            }
-        //            last_sample_time_statement = null;
-        //        }
-        //        influxdb.close();
+        influxdb.close();
     }
 }

@@ -54,7 +54,7 @@ public class XMLImport extends DefaultHandler
     final private static String TAG_ENABLE = "enable";
 
     /** Replace existing engine configuration? */
-    final private boolean replace;
+    final private boolean replace_engines;
 
     /** Steal channels that currently belong to a different engine? */
     final private boolean steal_channels;
@@ -106,21 +106,16 @@ public class XMLImport extends DefaultHandler
     private InfluxDBGroupConfig group;
 
     /** Initialize
-     *  @param influxdb_url
-     *  @param influxdb_user
-     *  @param influxdb_password
-     *  @param influxdb_schema
+     *  @param config The configuration object to import into
      *  @param replace Replace existing engine configuration?
      *  @param steal_channels Steal channels that currently belong to a different engine?
      *  @throws Exception
      */
-    public XMLImport(final String influxdb_url, final String influxdb_user, final String influxdb_password,
-            final String influxdb_schema,
-            final boolean replace, final boolean steal_channels) throws Exception
+    public XMLImport(final InfluxDBArchiveConfig config, final boolean replace, final boolean steal_channels) throws Exception
     {
-        this.replace = replace;
+        this.replace_engines = replace;
         this.steal_channels = steal_channels;
-        config = new InfluxDBArchiveConfig(influxdb_url, influxdb_user, influxdb_password, influxdb_schema);
+        this.config = config;
     }
 
     /** Parse an XML configuration into the InfluxDB
@@ -136,14 +131,14 @@ public class XMLImport extends DefaultHandler
         engine = config.findEngine(engine_name);
         if (engine != null)
         {
-            if (replace)
+            if (replace_engines)
             {
                 System.out.println("Replacing existing engine config " + engine_name);
                 config.deleteEngine(engine);
             }
             else
                 throw new XMLImportException("Error: Engine config '" + engine_name +
-                "' already exists");
+                        "' already exists");
         }
         engine = config.createEngine(engine_name, description, engine_url);
 
@@ -154,7 +149,7 @@ public class XMLImport extends DefaultHandler
     /** Reset the accumulator at the start of each element */
     @Override
     public void startElement(final String uri, final String localName,
-                    final String element, final Attributes attributes)
+            final String element, final Attributes attributes)
                     throws SAXException
     {
         if (state == State.NEED_FIRST_ELEMENT)
@@ -196,7 +191,7 @@ public class XMLImport extends DefaultHandler
     /** Handle the data for the completed element */
     @Override
     public void endElement(final String uri, final String localName,
-                    final String element)
+            final String element)
                     throws SAXException
     {
         if (element.equals(TAG_NAME))
@@ -213,7 +208,7 @@ public class XMLImport extends DefaultHandler
                 {
                     group = config.addGroup(engine, name);
                     System.out.println("Import '" + engine.getName()
-                            + "', Group '" + name + "'");
+                    + "', Group '" + name + "'");
                 }
                 catch (Exception ex)
                 {
@@ -224,7 +219,7 @@ public class XMLImport extends DefaultHandler
             }
             else if (state != State.CHANNEL)
                 throw new SAXException("Got 'name' '" + name
-                                + " in state " + state.name());
+                        + " in state " + state.name());
             // else: just remember the name while collecting channel info
         }
         else if (element.equals(TAG_PERIOD))
@@ -323,12 +318,12 @@ public class XMLImport extends DefaultHandler
             {    // Must convert to SAXException
                 final StackTraceElement[] trace = ex.getStackTrace();
                 throw new SAXException("Cannot add channel '" + name
-                                + "' to group '" + group.getName()
-                                + "', Engine '" + engine.getName()
-                                + "':\n" + ex.getMessage()
-                                + " (" + trace[0].getFileName()
-                                + ", " + trace[0].getLineNumber() + ")",
-                                ex);
+                        + "' to group '" + group.getName()
+                        + "', Engine '" + engine.getName()
+                        + "':\n" + ex.getMessage()
+                        + " (" + trace[0].getFileName()
+                        + ", " + trace[0].getLineNumber() + ")",
+                        ex);
             }
         }
         else if (element.equals(TAG_GROUP))
@@ -345,7 +340,7 @@ public class XMLImport extends DefaultHandler
      *  @throws SAXException on error
      */
     private void checkStateForTag(final State expected, final String tag)
-        throws SAXException
+            throws SAXException
     {
         if (state == expected)
             return;
@@ -366,11 +361,5 @@ public class XMLImport extends DefaultHandler
     {
         System.out.println("Configuration file line " + ex.getLineNumber() + ":");
         ex.printStackTrace();
-    }
-
-    /** Must be called to reclaim InfluxDB resources */
-    public void close()
-    {
-        config.close();
     }
 }

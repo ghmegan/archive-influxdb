@@ -7,6 +7,7 @@
  ******************************************************************************/
 package org.csstudio.archive.config.influxdb;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import org.csstudio.archive.config.ChannelConfig;
@@ -68,6 +69,17 @@ public class InfluxDBGroupConfig extends GroupConfig
         return channel_id2obj.values().toArray(new ChannelConfig[channel_id2obj.size()]);
     }
 
+    /**
+     * @return set of all channel names for channels in this group
+     */
+    public String[] getChannelNames()
+    {
+        return channel_name2id.keySet().toArray(new String[channel_name2id.size()]);
+    }
+
+    /**
+     * @return true if this group contains the specified channel name
+     */
     public boolean containsChannel(final String channel_name)
     {
         return channel_name2id.containsKey(channel_name);
@@ -81,13 +93,23 @@ public class InfluxDBGroupConfig extends GroupConfig
         enabling_channel = channel.getName();
     }
 
-    public InfluxDBChannelConfig addChannel(final int channel_id, final String channel_name, final InfluxDBSampleMode mode) throws Exception
+    public void updateChannelLastTime(final String channel_name, Instant new_last_sample_time) throws Exception
+    {
+        Integer channel_id = channel_name2id.get(channel_name);
+        if (channel_id == null)
+            throw new Exception("Cannot update nonexistant channel " + channel_name + " to engine " + getName());
+
+        InfluxDBChannelConfig old_config = (InfluxDBChannelConfig)channel_id2obj.get(channel_id);
+        channel_id2obj.put(channel_id, old_config.cloneReplaceSampleTime(new_last_sample_time));
+    }
+
+    public InfluxDBChannelConfig addChannel(final int channel_id, final String channel_name, final InfluxDBSampleMode mode, Instant last_sample_time) throws Exception
     {
         if (channel_name2id.containsKey(channel_name))
             throw new Exception("Cannot re-add extant channel " + channel_name + " to engine " + getName());
 
         channel_name2id.put(channel_name, channel_id);
-        InfluxDBChannelConfig channel = new InfluxDBChannelConfig(channel_id, channel_name, mode, null, group_id);
+        InfluxDBChannelConfig channel = new InfluxDBChannelConfig(channel_id, channel_name, mode, last_sample_time, group_id);
         channel_id2obj.put(channel_id, channel);
         return channel;
     }

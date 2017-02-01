@@ -14,11 +14,14 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
 
-import org.csstudio.apputil.test.TestProperties;
+import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.EngineConfig;
+import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig;
 import org.csstudio.archive.config.influxdb.XMLExport;
 import org.csstudio.archive.config.influxdb.XMLImport;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 /** JUnit demo of {@link XMLExport} and {@link XMLImport}
@@ -27,69 +30,10 @@ import org.junit.Test;
 @SuppressWarnings("nls")
 public class InfluxDBArchiveExportImportDemo
 {
-    @Test
-    public void testExport() throws Exception
-    {
-        final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_influxdb_url");
-        final String user = settings.getString("archive_influxdb_user");
-        final String password = settings.getString("archive_influxdb_password");
-        final String schema = settings.getString("archive_influxdb_schema");
-        final String engine_name = settings.getString("archive_config");
-        final String filename = settings.getString("tmp_file");
-        if (url == null  ||  user == null  ||  password == null  ||  engine_name == null  ||
-                filename == null)
-        {
-            System.out.println("Skipping test, no archive_influxdb_url, user, password, tmp_file");
-            return;
-        }
-
-        final File file = new File(filename);
-        if (file.exists())
-            file.delete();
-        assertFalse(file.exists());
-        final PrintStream out = new PrintStream(filename);
-        try
-        {
-            new XMLExport().export(out, url, user, password, schema, engine_name);
-        }
-        finally
-        {
-            out.close();
-        }
-        assertTrue(file.exists());
-        System.out.println("Created file " + file + ", " + file.length() + " bytes");
-    }
-
-    @Test
-    public void testDelete() throws Exception
-    {
-        final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_influxdb_url");
-        final String user = settings.getString("archive_influxdb_user");
-        final String password = settings.getString("archive_influxdb_password");
-        final String engine_name = settings.getString("archive_config");
-        final String schema = settings.getString("archive_influxdb_schema");
-        if (url == null  ||  user == null  ||  password == null  ||  engine_name == null)
-        {
-            System.out.println("Skipping test, no archive_influxdb_url, user, password");
-            return;
-        }
-
-        final InfluxDBArchiveConfig config = new InfluxDBArchiveConfig(url, user, password, schema);
-        try
-        {
-            EngineConfig engine = config.findEngine(engine_name);
-            assertNotNull(engine);
-            config.deleteEngine(engine);
-            engine = config.findEngine(engine_name);
-            assertNull(engine);
-        }
-        finally
-        {
-            config.close();
-        }
-    }
+    private InfluxDBArchiveConfig config = null;
+    private File tmp_file = null;
+    private File input_file = null;
+    private String engine_name = null;
 
     /**
      * Archive configurations for accelerator (snapshot only)
@@ -102,34 +46,121 @@ public class InfluxDBArchiveExportImportDemo
      *
      * @throws Exception
      */
-    @Test
-    public void testImport() throws Exception
+    @Before
+    public void connect() throws Exception
     {
-        final TestProperties settings = new TestProperties();
-        final String url = settings.getString("archive_influxdb_url");
-        final String user = settings.getString("archive_influxdb_user");
-        final String password = settings.getString("archive_influxdb_password");
-        final String engine_name = settings.getString("archive_config");
-        final String schema = settings.getString("archive_influxdb_schema");
-        final String filename = settings.getString("tmp_file");
-        if (url == null  ||  user == null  ||  password == null  ||  engine_name == null ||
-                filename == null)
+        //        final TestProperties settings = new TestProperties();
+        //        final String url = settings.getString("archive_influxdb_url");
+        //        final String user = settings.getString("archive_influxdb_user");
+        //        final String password = settings.getString("archive_influxdb_password");
+        //        final String filename = settings.getString("tmp_file");
+        //        final String engine_name = settings.getString("archive_config");
+
+        //String archive_url = "http://localhost:8086";
+        String archive_url = "http://diane.ornl.gov:8086";
+        String user = null;
+        String password = null;
+        tmp_file = File.createTempFile("InfluxDBConfigTest-out", ".xml");
+        input_file = new File("../org.csstudio.archive.config.influxdb/xml/demo.xml");
+        engine_name = "demo";
+
+        if (archive_url == null || tmp_file == null || input_file == null || engine_name == null)
         {
-            System.out.println("Skipping test, no archive_influxdb_url, user, password, filename");
+            System.out.println("Skipping test, missing one of: archive_url, tmp_file, input_file, engine_name");
+            config = null;
             return;
         }
 
-        final File file = new File(filename);
-        assertTrue(file.exists());
-        final XMLImport importer = new XMLImport(url, user, password, schema, true, false);
+        System.out.println("Using temporary file: " + tmp_file.getName());
+
+        if (user == null  ||  password == null)
+        {
+            System.out.println("Trying connections with no username or password....");
+            user = null;
+            password = null;
+        }
+
+        config = new InfluxDBArchiveConfig(archive_url, user, password);
+
+        assertTrue(input_file.exists());
+        final XMLImport importer = new XMLImport(config, true, false);
+        final InputStream stream = new FileInputStream(input_file);
+        System.out.println("Reading file " + input_file + ", " + input_file.length() + " bytes");
+
+        importer.parse(stream, engine_name, "Demo", "http://localhost:4813");
+    }
+
+    @After
+    public void close()
+    {
+        if (config != null)
+            config.close();
+    }
+
+    /** Export the config to temporary xml
+     * @throws Exception
+     */
+    @Test
+    public void testExport() throws Exception
+    {
+        final String filename = tmp_file.getAbsolutePath();
+        if (tmp_file.exists())
+            tmp_file.delete();
+        assertFalse(tmp_file.exists());
+        final PrintStream out = new PrintStream(filename);
         try
         {
-            final InputStream stream = new FileInputStream(file);
-            importer.parse(stream, engine_name, "Demo", "http://localhost:4813");
+            new XMLExport().export(out, config, engine_name);
         }
         finally
         {
-            importer.close();
+            out.close();
+        }
+        assertTrue(tmp_file.exists());
+        System.out.println("Created file " + tmp_file + ", " + tmp_file.length() + " bytes");
+    }
+
+    @Test
+    public void testEngine() throws Exception
+    {
+        if (config == null)
+            return;
+        final EngineConfig engine = config.findEngine(engine_name);
+        assertNotNull("Cannot locate engine " + engine_name, engine);
+        System.out.println(engine.getName() + ": " + engine.getDescription() +
+                " @ " + engine.getURL());
+        assertEquals(engine_name, engine.getName());
+
+        final GroupConfig[] groups = config.getGroups(engine);
+        for (GroupConfig group : groups)
+            System.out.println(group.getName());
+        assertTrue(groups.length > 0);
+
+        for (GroupConfig group : groups)
+        {
+            final ChannelConfig[] channels = config.getChannels(group, false);
+            for (ChannelConfig channel : channels)
+                System.out.println(group.getName() + " - " + channel.getName() + " " + channel.getSampleMode() +
+                        ", last sample time: " + channel.getLastSampleTime());
         }
     }
+
+    //    @Test
+    //    public void testDelete() throws Exception
+    //    {
+    //        try
+    //        {
+    //            EngineConfig engine = config.findEngine(engine_name);
+    //            assertNotNull(engine);
+    //            config.deleteEngine(engine);
+    //            engine = config.findEngine(engine_name);
+    //            assertNull(engine);
+    //        }
+    //        finally
+    //        {
+    //            config.close();
+    //        }
+    //    }
+
+
 }

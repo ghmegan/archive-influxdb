@@ -26,18 +26,12 @@ public class XMLExport
 {
     /** Export configuration
      *  @param out {@link PrintStream}
-     *  @param influxdb_url
-     *  @param influxdb_user
-     *  @param influxdb_password
-     *  @param influxdb_schema
+     *  @param config the configuration to export
      *  @param engine_name Name of engine configuration
      *  @throws Exception on error
      */
-    public void export(final PrintStream out,
-            final String influxdb_url, final String influxdb_user, final String influxdb_password, final String influxdb_schema,
-            final String engine_name) throws Exception
+    public void export(final PrintStream out, final InfluxDBArchiveConfig config, final String engine_name) throws Exception
     {
-        final InfluxDBArchiveConfig config = new InfluxDBArchiveConfig(influxdb_url, influxdb_user, influxdb_password, influxdb_schema);
         try
         {
             final EngineConfig engine = config.findEngine(engine_name);

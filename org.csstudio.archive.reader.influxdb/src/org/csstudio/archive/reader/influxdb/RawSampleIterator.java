@@ -11,14 +11,10 @@ import java.time.Instant;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
-import java.util.logging.Level;
-
 import org.csstudio.archive.influxdb.InfluxDBResults;
-import org.csstudio.archive.influxdb.InfluxDBUtil;
 //import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
 import org.diirt.vtype.VType;
 import org.influxdb.dto.QueryResult;
-import org.influxdb.dto.QueryResult.Series;
 
 /** Value Iterator that reads from the SAMPLE table.
  *  @author Kay Kasemir
@@ -59,11 +55,11 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
         QueryResult results = null;
 
         //Get the timestamp of the last sample at or before the indicated start time.
-        sample_starttime = getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, null, start, 1L));
+        sample_starttime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, null, start, 1L));
         if (sample_starttime == null)
         {
             //No samples at or before start, find oldest sample in range
-            sample_starttime = getTimestamp(reader.getQueries().get_channel_samples(channel_name, start, end, 1L));
+            sample_starttime = InfluxDBResults.getTimestamp(reader.getQueries().get_channel_samples(channel_name, start, end, 1L));
 
             //No samples before the end time. We are done
             if (sample_starttime == null)
@@ -75,12 +71,12 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
         }
 
         //Get the timestamp of the last sample in the range.
-        sample_endtime = getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, sample_starttime, end, 1L));
+        sample_endtime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, sample_starttime, end, 1L));
 
         //Find the last timestamp of the metadata before the end time
-        metadata_endtime = getTimestamp(reader.getQueries().get_newest_meta_data(channel_name, null, end, 1L));
+        metadata_endtime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_meta_data(channel_name, null, end, 1L));
         //Get the timestamp of the last metadata at or before the sample start time.
-        metadata_starttime = getTimestamp(reader.getQueries().get_newest_meta_data(channel_name, null, sample_starttime, 1L));
+        metadata_starttime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_meta_data(channel_name, null, sample_starttime, 1L));
 
         reader.getQueries().chunk_get_channel_samples(sample_chunk_size, channel_name, sample_starttime, end, null,
                 new Consumer<QueryResult>() {
@@ -106,24 +102,6 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
             close();
     }
 
-    private Instant getTimestamp(QueryResult results) throws Exception
-    {
-        //Activator.getLogger().log(Level.FINE, "Results from query: {0}", InfluxDBResults.toString(results));
-
-        final Instant ret;
-        try
-        {
-            final Series series0 = results.getResults().get(0).getSeries().get(0);
-            //final String ts = (String) InfluxDBResults.getValue(series0, "time", 0);
-            ret = InfluxDBUtil.fromInfluxDBTimeFormat(InfluxDBResults.getValue(series0, "time", 0));
-        }
-        catch (Exception e)
-        {
-            Activator.getLogger().log(Level.FINE, () -> "Could not get timestamp from results :" + InfluxDBResults.toString(results));
-            return null;
-        }
-        return ret;
-    }
 
     /** {@inheritDoc} */
     @Override
