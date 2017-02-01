@@ -64,7 +64,7 @@ public class InfluxDBQueries
     public static String get_channel_points(final String select_what, final String channel_name, final Instant starttime, final Instant endtime, final Long limit)
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("SELECT ").append(select_what).append(" FROM ").append(channel_name);
+        sb.append("SELECT ").append(select_what).append(" FROM \"").append(channel_name).append('\"');
         if (starttime != null)
         {
             sb.append(" WHERE time >= ").append(InfluxDBUtil.toNano(starttime).toString());

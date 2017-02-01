@@ -48,7 +48,7 @@ The cpu load and memory use are numeric values that I want to use in calculation
 I will have to query based on these values, which might become slow if my database becomes very large
 ... so I might also consider adding two more tags that just indicate "HI" or "LO" cpu and memory load if this becomes a problem.
 
-
+----------------------------------------------------------------------
 Series cardinality:
 
 If I don't use hi/lo tags, the database will contain 100 series, 2 measurements * 50 hostname tags.
@@ -56,10 +56,33 @@ If I decide to add hi/lo level tags, I will have 400 series: 2 measurements * 50
 
 For a point of reference, InfluxDB considers anything under 100,000 unique series to be a low load.
 
+----------------------------------------------------------------------
+Inserting data:
 
-Inserting and Querying data:
+For everything we do here, we are acting through the REST API to the /write endpoint. Each sample is written with a timestamp,
+some fields, and some tags. See the official documentation for examples of what the http API looks like.
+In this code, we use the Java API, which translates into the REST API behind the scenes.
 
-InfluxDB has a command line interface with a query language, which really just talks back to the http API anyway. 
-I am too lazy to put in all of the commands right now... maybe later. Its lunchtime and I want hummus. I really wish they had some dolmades. Or better hummus. Maybe I will just get ice cream. Or a potato. I wish they had baked sweet potato. Or sweet potato pancakes. With agave syrup and peanut butter. That would be awesome right now.
-Also I am probably just going to use the Java interface most of the time...
-Probably best if you can look up the interface online.
+A sample is considered unique if it has a unique set of (measurement, timestamp, tags). So, this is
+pretty key, you can overwrite a sample with the same timestamp and tags with one of a different value.
+
+For example, say I write two samples, with one tag for the hostname and one field for the load
+
+Sample 1: measurement=cpu, time=1254858729900000, hostname=joe, load=99.9
+Sample 2: measurement=cpu, time=1254858729900000, hostname=joe, load=10.0
+
+Only one of these samples will get stored, whichever arrives last. If I query the cpu measurement later, it will not have both of these samples
+
+Say I write another two samples, but this time, the tags don't match:
+
+Sample 1: measurement=cpu, time=1254858729900000, hostname=joe, load=99.9
+Sample 2: measurement=cpu, time=1254858729900000, hostname=bob, load=10.0
+
+In this case, both samples gets stores. So, when I query cpu data later, both of them will show up.
+
+----------------------------------------------------------------------
+Querying data:
+
+At the root, everything goes through a REST API. There is a query language that is used at the /query endpoint. 
+Best to look up the documentation on querying, rather than try to record a bunch of examples here.
+

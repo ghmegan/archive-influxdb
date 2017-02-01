@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotNull;
 
 import org.csstudio.archive.config.ArchiveConfig;
 import org.csstudio.archive.config.ArchiveConfigFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /** [Headless] JUnit Plug-in test/demo of the {@link ArchiveConfigFactory}
@@ -19,8 +20,9 @@ import org.junit.Test;
 @SuppressWarnings("nls")
 public class ArchiveConfigFactoryIT
 {
+    @Ignore
     @Test
-    public void testArchiveConfig() throws Exception
+    public void demoArchiveConfig() throws Exception
     {
         final ArchiveConfig config = ArchiveConfigFactory.getArchiveConfig();
         assertNotNull(config);
