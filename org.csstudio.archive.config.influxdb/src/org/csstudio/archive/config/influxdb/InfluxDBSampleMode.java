@@ -15,8 +15,6 @@ import org.csstudio.archive.config.SampleMode;
 @SuppressWarnings("nls")
 public class InfluxDBSampleMode extends SampleMode
 {
-    //final private int id;
-
     /** Initialize
      *  @param id InfluxDB ID
      *  @param monitor Monitor/subscription or active scan?
@@ -26,7 +24,6 @@ public class InfluxDBSampleMode extends SampleMode
     public InfluxDBSampleMode(final boolean monitor, final double delta, final double period)
     {
         super(monitor, delta, period);
-        //this.id = id;
     }
 
     /** @param name Scan mode name
@@ -36,10 +33,4 @@ public class InfluxDBSampleMode extends SampleMode
     {
         return "Monitor".equalsIgnoreCase(name);
     }
-
-    //    /** @return InfluxDB ID */
-    //    public int getId()
-    //    {
-    //        return id;
-    //    }
 }
