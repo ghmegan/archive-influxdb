@@ -86,6 +86,11 @@ public class InfluxDBUtil
         return InfluxDBArchivePreferences.METADBNAME;
     }
 
+    public static void initDatabases(final InfluxDB influxdb) {
+        influxdb.createDatabase(InfluxDBArchivePreferences.DBNAME);
+        influxdb.createDatabase(InfluxDBArchivePreferences.METADBNAME);
+    }
+
     public static InfluxDB connect(final String url, final String user, final String password) throws Exception
     {
         Activator.getLogger().log(Level.FINE, "Connecting to {0}", url);

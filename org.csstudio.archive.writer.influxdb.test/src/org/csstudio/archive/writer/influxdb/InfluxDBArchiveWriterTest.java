@@ -11,6 +11,10 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.influxdb.InfluxDBUtil;
+//import org.junit.Ignore;
+import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.vtype.ArchiveVEnum;
 import org.csstudio.archive.vtype.ArchiveVNumber;
 import org.csstudio.archive.vtype.ArchiveVNumberArray;
@@ -23,9 +27,6 @@ import org.diirt.vtype.ValueFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.csstudio.archive.influxdb.InfluxDBResults;
-//import org.junit.Ignore;
-import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 
 /** JUnit test of the archive writer
  *
@@ -53,8 +54,8 @@ public class InfluxDBArchiveWriterTest
         //        name = settings.getString("archive_channel");
         //        array_name = settings.getString("archive_array_channel");
 
-        //String archive_url = "http://localhost:8086";
-        String archive_url = "http://diane.ornl.gov:8086";
+        String archive_url = "http://localhost:8086";
+        // String archive_url = "http://diane.ornl.gov:8086";
         String user = null;
         String password = null;
 
@@ -84,6 +85,8 @@ public class InfluxDBArchiveWriterTest
             System.err.println("Could not create archive writer");
             e.printStackTrace();
         }
+
+        InfluxDBUtil.initDatabases(writer.getConnectionInfo().influxdb);
     }
 
     @After
