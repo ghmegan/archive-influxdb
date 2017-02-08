@@ -9,9 +9,9 @@ package org.csstudio.archive.reader.influxdb;
 
 import org.csstudio.archive.reader.ValueIterator;
 
-/** Base for ValueIterators that read from the RDB
+/** Base for ValueIterators that read from the InfluxDB
  *  @author Kay Kasemir
- *  @author Lana Abadie (PostgreSQL)
+ *  @author Megan Grodowitz (InfluxDB)
  */
 @SuppressWarnings("nls")
 abstract public class AbstractInfluxDBValueIterator  implements ValueIterator

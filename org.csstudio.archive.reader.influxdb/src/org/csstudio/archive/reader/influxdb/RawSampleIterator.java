@@ -11,8 +11,8 @@ import java.time.Instant;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
+
 import org.csstudio.archive.influxdb.InfluxDBResults;
-//import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
 import org.diirt.vtype.VType;
 import org.influxdb.dto.QueryResult;
 
@@ -35,12 +35,11 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
 
     private final ChunkReader samples;
 
-    //TODO: chunk size preferences
-    static final private int sample_chunk_size = 20000;
-    static final private int metadata_chunk_size = 1000;
+    final private int sample_chunk_size;
+    final private int metadata_chunk_size;
 
     /** Initialize
-     *  @param reader RDBArchiveReader
+     *  @param reader InfluxDBArchiveReader
      *  @param channel_name ID of channel
      *  @param start Start time
      *  @param end End time
@@ -52,7 +51,10 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     {
         super(reader, channel_name);
         Instant sample_endtime, sample_starttime, metadata_endtime, metadata_starttime;
-        QueryResult results = null;
+        // QueryResult results = null;
+
+        sample_chunk_size = Preferences.getChunkSize();
+        metadata_chunk_size = Preferences.getChunkSize();
 
         //Get the timestamp of the last sample at or before the indicated start time.
         sample_starttime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, null, start, 1L));

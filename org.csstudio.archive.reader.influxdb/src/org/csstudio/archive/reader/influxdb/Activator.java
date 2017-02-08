@@ -22,7 +22,7 @@ public class Activator extends Plugin
     final public static String ID = "org.csstudio.archive.reader.influxdb";
 
     private static Activator instance = new Activator();
-    private final Logger logger;
+    // private final Logger logger;
 
     /** {@inheritDoc} */
     @Override
@@ -38,9 +38,9 @@ public class Activator extends Plugin
         return instance;
     }
 
-    Activator()
-    {
-        logger = Logger.getLogger(ID);
+    // Activator()
+    // {
+    // logger = Logger.getLogger(ID);
         //        logger.setLevel(Level.FINE);
         //        for (Handler handler : logger.getHandlers())
         //        {
@@ -50,11 +50,12 @@ public class Activator extends Plugin
         //        // PUBLISH this level
         //        handler.setLevel(Level.FINE);
         //        logger.addHandler(handler);
-    }
+    // }
 
     /** @return Logger for plugin ID */
     public static Logger getLogger()
     {
-        return instance.logger;
+        // return instance.logger;
+        return Logger.getLogger(ID);
     }
 }

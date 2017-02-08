@@ -11,8 +11,8 @@ import org.csstudio.archive.influxdb.MetaTypes.MetaObject;
 import org.csstudio.archive.influxdb.MetaTypes.StoreAs;
 import org.csstudio.archive.writer.WriteChannel;
 
-/** Channel information for channel in RDB
- *  @author Kay Kasemir
+/** Channel information for channel in InfluxDB
+ *  @author Megan Grodowitz
  */
 @SuppressWarnings("nls")
 public class InfluxDBWriteChannel implements WriteChannel
@@ -23,7 +23,6 @@ public class InfluxDBWriteChannel implements WriteChannel
 
     /** Initialize
      *  @param name Channel name
-     *  @param id Channel ID in RDB
      */
     public InfluxDBWriteChannel(final String name)
     {

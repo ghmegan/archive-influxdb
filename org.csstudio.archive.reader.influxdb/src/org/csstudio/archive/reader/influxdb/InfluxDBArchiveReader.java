@@ -30,7 +30,6 @@ import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.UnknownChannelException;
 import org.csstudio.archive.reader.ValueIterator;
-//import org.csstudio.platform.utility.rdb.RDBUtil.Dialect;
 import org.diirt.util.time.TimeDuration;
 
 /** ArchiveReader for InfluxDB data
@@ -257,7 +256,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
     }
 
     /** Fetch raw samples
-     *  @param channel_name Channel ID in RDB
+     *  @param channel_name Channel name in influxdb
      *  @param start Start time
      *  @param end End time
      *  @return {@link ValueIterator} for raw samples
@@ -311,6 +310,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
         return new AveragedValueIterator(raw_data, seconds);
     }
 
+    //TODO: this comes from in-memory configuration object now
     /** @param name Channel name
      *  @return Numeric channel ID
      *  @throws UnknownChannelException when channel not known
@@ -381,31 +381,9 @@ public class InfluxDBArchiveReader implements ArchiveReader
         return false;
     }
 
-    /** Cancel an ongoing RDB query.
-     *  Not supported by all queries.
-     */
     @Override
     public void cancel()
     {
-        //        synchronized (cancellable_statements)
-        //        {
-        //            for (Statement statement : cancellable_statements)
-        //            {
-        //                try
-        //                {
-        //                    // Note that
-        //                    //    statement.getConnection().close()
-        //                    // does NOT stop an ongoing Oracle query!
-        //                    // Only this seems to do it:
-        //                    statement.cancel();
-        //                }
-        //                catch (Exception ex)
-        //                {
-        //                    Logger.getLogger(Activator.ID).log(Level.WARNING,
-        //                            "Attempt to cancel statement", ex); //$NON-NLS-1$
-        //                }
-        //            }
-        //        }
     }
 
     /** {@inheritDoc} */
@@ -413,20 +391,6 @@ public class InfluxDBArchiveReader implements ArchiveReader
     public void close()
     {
         cancel();
-        //        try
-        //        {
-        //            Connection connection = rdb.getConnection();
-        //            if (connection != null && connection.getAutoCommit() == false)
-        //            {
-        //                connection.rollback();
-        //                connection.setAutoCommit(true);
-        //            }
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            Activator.getLogger().log(Level.WARNING,
-        //                    "Attempt to cleanup connection failed with Exception", ex); //$NON-NLS-1$
-        //        }
         ConnectionCache.release(influxdb);
     }
 

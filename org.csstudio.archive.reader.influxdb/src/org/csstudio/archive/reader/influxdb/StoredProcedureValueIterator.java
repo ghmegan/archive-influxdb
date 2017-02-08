@@ -32,7 +32,7 @@ public class StoredProcedureValueIterator extends AbstractInfluxDBValueIterator
     private int index = -1;
 
     /** Initialize
-     *  @param reader RDBArchiveReader
+     *  @param reader InfluxDBArchiveReader
      *  @param stored_procedure Name of the stored procedure to call
      *  @param channel_id ID of channel
      *  @param start Start time

@@ -19,6 +19,19 @@
          </run>
       </application>
    </extension>
+      <extension
+         id="sim"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="singleton-global"
+            thread="main"
+            visible="true">
+         <run
+               class="org.csstudio.archive.config.influxdb.PopulateDatabaseApplication">
+         </run>
+      </application>
+   </extension>
+   
    <extension
          id="product"
          point="org.eclipse.core.runtime.products">
@@ -28,6 +41,18 @@
          <property
                name="appName"
                value="ArchiveConfigTool">
+         </property>
+      </product>
+   </extension>
+   <extension
+         id="product1"
+         point="org.eclipse.core.runtime.products">
+      <product
+            application="org.csstudio.archive.config.influxdb.sim"
+            name="PopulateDatabase">
+         <property
+               name="appName"
+               value="PopulateDatabase">
          </property>
       </product>
    </extension>

@@ -54,7 +54,7 @@ public class ConnectionCache
         }
     }
 
-    /** Cached RDB connection with reference count */
+    /** Cached InfluxDB connection with reference count */
     public static class Entry
     {
         private final ID id;
@@ -95,7 +95,7 @@ public class ConnectionCache
         return null;
     }
 
-    /** Get a cached RDB connection
+    /** Get a cached InfluxDB connection
      *  @param url Database URL
      *  @param user .. user
      *  @param password .. password

@@ -7,12 +7,12 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
-import org.csstudio.archive.rdb.RDBArchivePreferences;
+import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.ArchiveReaderFactory;
 
 /** The plugin.xml registers this factory for ArchiveReaders when the
- *  URL prefix indicates an RDB URL
+ *  URL prefix indicates an InfluxDB URL
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
@@ -26,11 +26,11 @@ public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
         // settings.
         // On CSS startup, a restored Data Browser would launch multiple
         // archive retrieval jobs.
-        // The first job's RDBArchiveReaderFactory call, trying to get the user name,
+        // The first job's ArchiveReaderFactory call, trying to get the user name,
         // would cause the preference service to read the default preferences.
-        // Meanwhile(!) a second archive retrieval job calling the RDBArchiveReaderFactory
+        // Meanwhile(!) a second archive retrieval job calling the ArchiveReaderFactory
         // would receive an empty user or password.
-        // By locking on the plug-in instance, the first RDBArchiveReaderFactory
+        // By locking on the plug-in instance, the first ArchiveReaderFactory
         // call will be able to complete the preference initialization
         // before a second instance tries to read preferences.
         // Using the plug-in instance as the lock also asserts that we're
@@ -38,13 +38,12 @@ public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
         // first place.
         final Activator instance = Activator.getInstance();
         if (instance == null)
-            throw new Exception("RDBArchiveReaderFactory requires Plugin infrastructure");
+            throw new Exception("InfluxDBArchiveReaderFactory requires Plugin infrastructure");
         synchronized (instance)
         {
-            final String user = RDBArchivePreferences.getUser();
-            final String password = RDBArchivePreferences.getPassword();
+            final String user = InfluxDBArchivePreferences.getUser();
+            final String password = InfluxDBArchivePreferences.getPassword();
             //TODO: cleanup
-            //final String schema = RDBArchivePreferences.getSchema();
             //final String stored_proc = Preferences.getStoredProcedure();
             return new InfluxDBArchiveReader(url, user, password);
         }

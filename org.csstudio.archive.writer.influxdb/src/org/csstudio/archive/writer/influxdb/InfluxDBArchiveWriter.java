@@ -24,9 +24,6 @@ import org.csstudio.archive.vtype.MetaDataHelper;
 import org.csstudio.archive.vtype.VTypeHelper;
 import org.csstudio.archive.writer.ArchiveWriter;
 import org.csstudio.archive.writer.WriteChannel;
-//TODO: cleanup
-//import org.csstudio.platform.utility.influxdb.RDBUtil;
-//import org.csstudio.platform.utility.influxdb.RDBUtil.Dialect;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDB.ConsistencyLevel;
 import org.influxdb.dto.BatchPoints;
@@ -36,10 +33,8 @@ import org.diirt.vtype.Display;
 import org.diirt.vtype.VEnum;
 import org.diirt.vtype.VType;
 
-/** ArchiveWriter implementation for RDB
- *  @author Kay Kasemir
- *  @author Lana Abadie - PostgreSQL for original RDBArchive code. Disable autocommit as needed.
- *  @author Laurent Philippe (Use read-only connection when possible for MySQL load balancing)
+/** ArchiveWriter implementation for InfluxDB
+ *  @author Megan Grodowitz
  */
 @SuppressWarnings("nls")
 public class InfluxDBArchiveWriter implements ArchiveWriter
@@ -121,7 +116,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     /** Initialize from preferences.
      *  This constructor will be invoked when an {@link ArchiveWriter}
      *  is created via the extension point.
-     *  @throws Exception on error, for example RDB connection error
+     *  @throws Exception on error, for example InfluxDB connection error
      */
     public InfluxDBArchiveWriter() throws Exception
     {
@@ -130,12 +125,10 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     }
 
     /** Initialize
-     *  @param url RDB URL
+     *  @param url InfluxDB URL
      *  @param user .. user name
      *  @param password .. password
-     *  @param schema Schema/table prefix, not including ".". May be empty
-     *  @param use_array_blob Use BLOB for array elements?
-     *  @throws Exception on error, for example RDB connection error
+     *  @throws Exception on error, for example InfluxDB connection error
      */
     public InfluxDBArchiveWriter(final String url, final String user, final String password) throws Exception
     {
