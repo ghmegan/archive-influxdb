@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.csstudio</groupId>
-    <artifactId>archive-features</artifactId>
+    <artifactId>archive-influxdb</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
   <artifactId>org.csstudio.archive.reader.influxdb.feature</artifactId>
