@@ -282,4 +282,37 @@ public class InfluxDBArchiveWriterTest
         System.out.println("Wrote " + count + " samples, i.e. "
                 + (count / duration_secs) + " samples/sec.");
     }
+
+    @Test
+    public void demoWriteTestPV() throws Exception {
+        if (writer == null)
+            return;
+
+        final String test_channel = "rampPV0";
+        final int sample_count = 1000;
+
+        final WriteChannel channel = getMakeChannel(test_channel);
+
+        Instant stamp = Instant.now().minusSeconds(sample_count);
+
+        double min = 0.0, max = 200.0, step = 2.0;
+        double val = min;
+        int flush = 0;
+        for (int i = 0; i < sample_count; i++) {
+            writer.addSample(channel, new ArchiveVNumber(stamp, AlarmSeverity.NONE, "OK", display, val));
+            stamp = stamp.plusSeconds(1);
+
+            val += step;
+            if ((val > max) || (val < min)) {
+                step = -step;
+            }
+
+            flush++;
+            if (flush >= FLUSH_COUNT) {
+                writer.flush();
+                flush = 0;
+            }
+        }
+        writer.flush();
+    }
 }
