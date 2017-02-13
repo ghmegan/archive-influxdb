@@ -7,17 +7,12 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
-import org.influxdb.InfluxDB;
-import org.influxdb.dto.QueryResult;
-import org.influxdb.dto.QueryResult.Series;
-
 //import java.sql.Connection;
 //import java.sql.PreparedStatement;
 //import java.sql.ResultSet;
 //import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +26,9 @@ import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.UnknownChannelException;
 import org.csstudio.archive.reader.ValueIterator;
 import org.diirt.util.time.TimeDuration;
+import org.influxdb.InfluxDB;
+import org.influxdb.dto.QueryResult;
+import org.influxdb.dto.QueryResult.Series;
 
 /** ArchiveReader for InfluxDB data
  *  @author Megan Grodowitz
@@ -223,10 +221,9 @@ public class InfluxDBArchiveReader implements ArchiveReader
     private String[] perform_search(final String pattern) throws Exception
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("/^").append(pattern).append("$/");
+        sb.append("^").append(pattern).append("$");
 
-        final ArrayList<String> names = new ArrayList<String>();
-        final QueryResult results = influxQuery.get_newest_meta_datum(sb.toString());
+        final QueryResult results = influxQuery.get_newest_meta_datum_regex(sb.toString());
 
         if (results.hasError())
         {

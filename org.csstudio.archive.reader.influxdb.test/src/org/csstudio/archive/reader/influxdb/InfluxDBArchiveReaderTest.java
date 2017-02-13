@@ -72,8 +72,8 @@ public class InfluxDBArchiveReaderTest
         //        name = settings.getString("archive_channel");
         //        array_name = settings.getString("archive_array_channel");
 
-        //String archive_url = "http://localhost:8086";
-        String archive_url = "http://diane.ornl.gov:8086";
+        String archive_url = "http://localhost:8086";
+        // String archive_url = "http://diane.ornl.gov:8086";
         String user = null;
         String password = null;
 

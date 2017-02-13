@@ -7,6 +7,8 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb;
 
+import java.util.logging.Level;
+
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.ArchiveReaderFactory;
@@ -36,6 +38,11 @@ public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
         // Using the plug-in instance as the lock also asserts that we're
         // running in a plug-in environment that supports preferences in the
         // first place.
+
+        // TODO: other parsing?
+        Activator.getLogger().log(Level.INFO,
+                "Input url for influxdb is currently ignored. Set url with preferences. " + url);
+
         final Activator instance = Activator.getInstance();
         if (instance == null)
             throw new Exception("InfluxDBArchiveReaderFactory requires Plugin infrastructure");
@@ -43,9 +50,9 @@ public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
         {
             final String user = InfluxDBArchivePreferences.getUser();
             final String password = InfluxDBArchivePreferences.getPassword();
-            //TODO: cleanup
             //final String stored_proc = Preferences.getStoredProcedure();
-            return new InfluxDBArchiveReader(url, user, password);
+            final String actual_url = InfluxDBArchivePreferences.getURL();
+            return new InfluxDBArchiveReader(actual_url, user, password);
         }
     }
 }

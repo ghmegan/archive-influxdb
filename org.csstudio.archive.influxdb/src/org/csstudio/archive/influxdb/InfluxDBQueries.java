@@ -48,23 +48,9 @@ public class InfluxDBQueries
     }
 
 
-    /**
-     * Create a query string to extract points, ordered by time, for a given channel
-     *
-     * @param channel_name String name of channel
-     * @param starttime initial timestamp
-     * @param endtime final timestamp
-     * @param limit max number of samples to return
-     * @return Query string
-     *
-     * starttime may be null to indicate beginning of time
-     * endtime may be null to indicate no end time cutoff
-     * limit may be null for no limit, positive for list of oldest points in range, negative for list of newest (most recent) points in range
-     */
-    public static String get_channel_points(final String select_what, final String channel_name, final Instant starttime, final Instant endtime, final Long limit)
+    private static String get_points(final StringBuilder sb, final Instant starttime, final Instant endtime,
+            final Long limit)
     {
-        StringBuilder sb = new StringBuilder();
-        sb.append("SELECT ").append(select_what).append(" FROM \"").append(channel_name).append('\"');
         if (starttime != null)
         {
             sb.append(" WHERE time >= ").append(InfluxDBUtil.toNano(starttime).toString());
@@ -86,6 +72,39 @@ public class InfluxDBQueries
                 sb.append(" DESC LIMIT ").append(-limit);
         }
         return sb.toString();
+    }
+
+    /**
+     * Create a query string to extract points, ordered by time, for a given
+     * channel
+     *
+     * @param channel_name
+     *            String name of channel
+     * @param starttime
+     *            initial timestamp
+     * @param endtime
+     *            final timestamp
+     * @param limit
+     *            max number of samples to return
+     * @return Query string
+     *
+     *         starttime may be null to indicate beginning of time endtime may
+     *         be null to indicate no end time cutoff limit may be null for no
+     *         limit, positive for list of oldest points in range, negative for
+     *         list of newest (most recent) points in range
+     */
+    public static String get_channel_points(final String select_what, final String channel_name,
+            final Instant starttime, final Instant endtime, final Long limit) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT ").append(select_what).append(" FROM \"").append(channel_name).append('\"');
+        return get_points(sb, starttime, endtime, limit);
+    }
+
+    public static String get_pattern_points(final String select_what, final String pattern, final Instant starttime,
+            final Instant endtime, final Long limit) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT ").append(select_what).append(" FROM /").append(pattern).append('/');
+        return get_points(sb, starttime, endtime, limit);
     }
 
     public QueryResult get_oldest_channel_sample(final String channel_name)
@@ -145,6 +164,11 @@ public class InfluxDBQueries
                 influxdb,
                 get_channel_points("*", channel_name, null, null, -1L),
                 InfluxDBUtil.getMetaDBName(channel_name));
+    }
+
+    public QueryResult get_newest_meta_datum_regex(final String pattern) {
+        return makeQuery(influxdb, get_pattern_points("*", pattern, null, null, -1L),
+                InfluxDBUtil.getMetaDBName(pattern));
     }
 
     public QueryResult get_all_meta_data(final String channel_name)
