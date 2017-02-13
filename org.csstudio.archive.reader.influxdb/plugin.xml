@@ -4,7 +4,7 @@
    <extension
          point="org.csstudio.archive.reader.ArchiveReader">
       <ArchiveReader
-            class="org.csstudio.archive.reader.influxdb.InfluxdbArchiveReaderFactory"
+            class="org.csstudio.archive.reader.influxdb.InfluxDBArchiveReaderFactory"
             name="org.csstudio.archive.reader.influxdb.archivereader"
             prefix="influxdb">
       </ArchiveReader>
