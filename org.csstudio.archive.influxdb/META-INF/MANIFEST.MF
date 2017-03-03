@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: InfluxDB Archive library
 Bundle-SymbolicName: org.csstudio.archive.influxdb;singleton:=true
-Bundle-Version: 4.0.0.qualifier
+Bundle-Version: 4.2.1.qualifier
 Bundle-Vendor: Megan Grodowitz <grodowitzml@ornl.gov> - SNS
 Bundle-Description: Archive InfluxDB support library
 Require-Bundle: org.eclipse.core.runtime,
