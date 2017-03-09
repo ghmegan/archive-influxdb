@@ -17,6 +17,10 @@
       [Enter License Description here.]
    </license>
 
+   <url>
+      <update label="InfluxDB Archiver" url="http://ctrl-ci.sns.gov/snapshot/archive-influxdb/repository/"/>
+   </url>
+
    <plugin
          id="org.csstudio.archive.influxdb"
          download-size="0"

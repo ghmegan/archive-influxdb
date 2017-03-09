@@ -29,6 +29,9 @@
 		    <id>org.csstudio:org.csstudio.archive.reader.influxdb:4.2.1-SNAPSHOT</id>
 		  </artifact>
 		  <artifact>
+		    <id>org.csstudio:org.csstudio.archive.reader.influxdb.raw:4.2.1-SNAPSHOT</id>
+		  </artifact>
+		  <artifact>
 		    <id>org.csstudio:org.csstudio.archive.reader.influxdb.feature:1.0.0-SNAPSHOT</id>
 		  </artifact>
 		  <artifact>
