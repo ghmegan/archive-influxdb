@@ -12,8 +12,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
+import org.csstudio.archive.influxdb.InfluxDBQueries.DBNameMap;
+import org.csstudio.archive.influxdb.InfluxDBQueries.DefaultDBNameMap;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
@@ -24,14 +27,14 @@ import org.csstudio.archive.vtype.MetaDataHelper;
 import org.csstudio.archive.vtype.VTypeHelper;
 import org.csstudio.archive.writer.ArchiveWriter;
 import org.csstudio.archive.writer.WriteChannel;
+import org.diirt.vtype.Display;
+import org.diirt.vtype.VEnum;
+import org.diirt.vtype.VType;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDB.ConsistencyLevel;
 import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.influxdb.dto.QueryResult;
-import org.diirt.vtype.Display;
-import org.diirt.vtype.VEnum;
-import org.diirt.vtype.VType;
 
 /** ArchiveWriter implementation for InfluxDB
  *  @author Megan Grodowitz
@@ -47,6 +50,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
 
     /** Cache of channels by name */
     final private Map<String, InfluxDBWriteChannel> channels = new HashMap<String, InfluxDBWriteChannel>();
+
+    final static private DBNameMap dbnames = new DefaultDBNameMap();
 
     static class batchPointSets
     {
@@ -69,14 +74,14 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             return points;
         }
 
-        public BatchPoints getChannelSamplePoints(final String channel_name)
+        public BatchPoints getChannelSamplePoints(final String channel_name) throws Exception
         {
-            return getMakePoints(InfluxDBUtil.getDataDBName(channel_name));
+            return getMakePoints(dbnames.getDataDBName(channel_name));
         }
 
-        public BatchPoints getChannelMetaPoints(final String channel_name)
+        public BatchPoints getChannelMetaPoints(final String channel_name) throws Exception
         {
-            return getMakePoints(InfluxDBUtil.getMetaDBName(channel_name));
+            return getMakePoints(dbnames.getMetaDBName(channel_name));
         }
 
         public BatchPoints getDBPoints(final String dbName) throws Exception
@@ -133,7 +138,7 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
     public InfluxDBArchiveWriter(final String url, final String user, final String password) throws Exception
     {
         influxdb = InfluxDBUtil.connect(url, user, password);
-        influxQuery = new InfluxDBQueries(influxdb);
+        influxQuery = new InfluxDBQueries(influxdb, dbnames);
         //        severities = new SeverityCache(influxdb, sql);
         //        stati = new StatusCache(influxdb, sql);
     }

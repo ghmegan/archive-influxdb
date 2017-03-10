@@ -20,13 +20,10 @@ import org.influxdb.dto.QueryResult;
  *  @author Kay Kasemir
  *  @author Megan Grodowitz (InfluxDB)
  */
-public class RawSampleIterator extends AbstractInfluxDBValueIterator
+public class SampleIterator extends AbstractInfluxDBValueIterator
 {
     /** Queue of result chunks of the sample query */
     final BlockingQueue<QueryResult> sample_queue = new LinkedBlockingQueue<>();
-
-    /** Queue of result chunks of the metadata query */
-    final BlockingQueue<QueryResult> metadata_queue = new LinkedBlockingQueue<>();
 
     /** 'Current' value that <code>next()</code> will return,
      *  or <code>null</code>
@@ -36,7 +33,6 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     private final ChunkReader samples;
 
     final private int sample_chunk_size;
-    final private int metadata_chunk_size;
 
     /** Initialize
      *  @param reader InfluxDBArchiveReader
@@ -45,16 +41,14 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
      *  @param end End time
      *  @throws Exception on error
      */
-    public RawSampleIterator(final InfluxDBArchiveReader reader,
+    public SampleIterator(final InfluxDBRawReader reader,
             final String channel_name, final Instant start,
             final Instant end) throws Exception
     {
         super(reader, channel_name);
-        Instant sample_endtime, sample_starttime, metadata_endtime, metadata_starttime;
-        // QueryResult results = null;
+        Instant sample_endtime, sample_starttime;
 
         sample_chunk_size = Preferences.getChunkSize();
-        metadata_chunk_size = Preferences.getChunkSize();
 
         //Get the timestamp of the last sample at or before the indicated start time.
         sample_starttime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, null, start, 1L));
@@ -75,11 +69,6 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
         //Get the timestamp of the last sample in the range.
         sample_endtime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, sample_starttime, end, 1L));
 
-        //Find the last timestamp of the metadata before the end time
-        metadata_endtime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_meta_data(channel_name, null, end, 1L));
-        //Get the timestamp of the last metadata at or before the sample start time.
-        metadata_starttime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_meta_data(channel_name, null, sample_starttime, 1L));
-
         reader.getQueries().chunk_get_channel_samples(sample_chunk_size, channel_name, sample_starttime, end, null,
                 new Consumer<QueryResult>() {
             @Override
@@ -89,14 +78,7 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
                 sample_queue.add(result);
             }});
 
-        reader.getQueries().chunk_get_channel_metadata(metadata_chunk_size, channel_name, metadata_starttime, end, null,
-                new Consumer<QueryResult>() {
-            @Override
-            public void accept(QueryResult result) {
-                metadata_queue.add(result);
-            }});
-
-        samples = new ChunkReader(sample_queue, sample_endtime, metadata_queue, metadata_endtime, reader.getTimeout());
+        samples = new ChunkReader(sample_queue, sample_endtime, reader.getTimeout());
 
         if (samples.step())
             next_value = samples.decodeSampleValue();
@@ -120,7 +102,7 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
     {
         // This should not happen...
         if (next_value == null)
-            throw new Exception("RawSampleIterator.next(" + channel_name + ") called after end");
+            throw new Exception("SampleIterator.next(" + channel_name + ") called after end");
 
         // Remember value to return...
         final VType result = next_value;

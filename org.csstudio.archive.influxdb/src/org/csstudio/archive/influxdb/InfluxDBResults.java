@@ -2,14 +2,15 @@ package org.csstudio.archive.influxdb;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 
+import org.apache.commons.lang3.StringUtils;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Result;
 import org.influxdb.dto.QueryResult.Series;
-
-import org.apache.commons.lang3.StringUtils;
 
 public class InfluxDBResults
 {
@@ -157,6 +158,16 @@ public class InfluxDBResults
             return null;
         }
         return ret;
+    }
+
+    public static String[] getMeasurements(final QueryResult results) throws Exception {
+        final List<Series> series = InfluxDBResults.getSeries(results);
+        Set<String> measurements = new HashSet<String>();
+
+        for (Series S : series) {
+            measurements.add(S.getName());
+        }
+        return measurements.toArray(new String[measurements.size()]);
     }
 
     public static TableBuilder makeSeriesTable(List<String> cols, List<List<Object>> all_vals)

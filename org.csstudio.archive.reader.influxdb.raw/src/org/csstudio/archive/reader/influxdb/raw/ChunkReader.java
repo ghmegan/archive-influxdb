@@ -21,8 +21,6 @@ import java.util.logging.Level;
 
 import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
-import org.csstudio.archive.influxdb.MetaTypes;
-import org.csstudio.archive.influxdb.MetaTypes.MetaObject;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Series;
 
@@ -30,13 +28,13 @@ import org.influxdb.dto.QueryResult.Series;
  *  @author Megan Grodowitz
  */
 
-public class ChunkReader extends InfluxDBSampleDecoder
+public class ChunkReader extends InfluxDBRawDecoder
 {
     /** Queue of result chunks of the sample query */
     final BlockingQueue<QueryResult> sample_queue;
 
-    /** Queue of result chunks of the metadata query */
-    final BlockingQueue<QueryResult> metadata_queue;
+    // /** Queue of result chunks of the metadata query */
+    // final BlockingQueue<QueryResult> metadata_queue;
 
     /** Expected last timestamp for samples */
     final Instant last_sample_time;
@@ -44,8 +42,8 @@ public class ChunkReader extends InfluxDBSampleDecoder
     /** Current sample timestamp or null for none */
     Instant cur_sample_time;
 
-    /** Expected last timestamp for metadata */
-    final Instant last_metadata_time;
+    // /** Expected last timestamp for metadata */
+    // final Instant last_metadata_time;
 
     /** Max time to wait for a chunk of data to arrive */
     final int timeout_secs;
@@ -59,8 +57,8 @@ public class ChunkReader extends InfluxDBSampleDecoder
     /** Values of current sample series */
     public List<Object> cur_sample_values;
 
-    /** Current meta data to process and next metadata if such exists */
-    public MetaObject cur_meta, next_meta;
+    // /** Current meta data to process and next metadata if such exists */
+    // public MetaObject cur_meta, next_meta;
 
     /** Remaining values of current series of samples to process */
     final protected Queue<List<Object>> next_sample_values = new LinkedList<List<Object>>();
@@ -68,29 +66,29 @@ public class ChunkReader extends InfluxDBSampleDecoder
     /** Remaining sample_series in the current sample chunk */
     final protected Queue<Series> next_sample_series = new LinkedList<Series>();
 
-    /** Remaining metadata in the current metadata chunk */
-    final protected Queue<MetaObject> next_metadata = new LinkedList<MetaObject>();
+    // /** Remaining metadata in the current metadata chunk */
+    // final protected Queue<MetaObject> next_metadata = new
+    // LinkedList<MetaObject>();
 
     private int step_count;
 
     private int recv_vals;
 
     ChunkReader(final BlockingQueue<QueryResult> sample_queue, final Instant last_sample_time,
-            final BlockingQueue<QueryResult> metadata_queue, final Instant last_metadata_time,
             final int timeout_secs)
     {
         this.sample_queue = sample_queue;
-        this.metadata_queue = metadata_queue;
+        // this.metadata_queue = metadata_queue;
         this.timeout_secs = timeout_secs;
 
-        this.last_metadata_time = last_metadata_time;
+        // this.last_metadata_time = last_metadata_time;
         this.last_sample_time = last_sample_time;
         this.cur_sample_time = Instant.MIN;
 
         this.cur_sample_columns = new String[1];
         this.cur_sample_values = null;
-        this.cur_meta = null;
-        this.next_meta = null;
+        // this.cur_meta = null;
+        // this.next_meta = null;
 
         this.step_count = 0;
         this.recv_vals = 0;
@@ -148,79 +146,87 @@ public class ChunkReader extends InfluxDBSampleDecoder
         return true;
     }
 
-    private void step_next_metadata() throws Exception
-    {
-        next_meta = next_metadata.poll();
-        while (next_meta == null)
-        {
-            try
-            {
-                final QueryResult results = metadata_queue.poll(timeout_secs, TimeUnit.SECONDS);
-                //Activator.getLogger().log(Level.FINEST, () -> "Got metadata chunk " + InfluxDBResults.toString(results) );
-                next_metadata.addAll(MetaTypes.toMetaObjects(results));
-            }
-            catch (Exception e)
-            {
-                throw new Exception ("failed to poll metadata queue for next metadata results ", e);
-            }
-            next_meta = next_metadata.poll();
-        }
-        Activator.getLogger().log(Level.FINER, () -> "Stepped next metadata " + next_meta.toString());
-    }
+    // private void step_next_metadata() throws Exception
+    // {
+    // next_meta = next_metadata.poll();
+    // while (next_meta == null)
+    // {
+    // try
+    // {
+    // final QueryResult results = metadata_queue.poll(timeout_secs,
+    // TimeUnit.SECONDS);
+    // //Activator.getLogger().log(Level.FINEST, () -> "Got metadata chunk " +
+    // InfluxDBResults.toString(results) );
+    // next_metadata.addAll(MetaTypes.toMetaObjects(results));
+    // }
+    // catch (Exception e)
+    // {
+    // throw new Exception ("failed to poll metadata queue for next metadata
+    // results ", e);
+    // }
+    // next_meta = next_metadata.poll();
+    // }
+    // Activator.getLogger().log(Level.FINER, () -> "Stepped next metadata " +
+    // next_meta.toString());
+    // }
 
-    private void update_meta() throws Exception
-    {
-        if (cur_meta == null)
-        {
-            try
-            {
-                step_next_metadata();
-            }
-            catch (Exception e)
-            {
-                throw new Exception ("Could not set initial metadata object", e);
-            }
-
-            cur_meta = next_meta;
-            Activator.getLogger().log(Level.FINE, "Set current metadata {0}, last timestamp is {1}", new Object[] {cur_meta, last_metadata_time});
-
-            if (cur_meta.timestamp.isBefore(last_metadata_time))
-            {
-                // There should be more metadata, because we haven't hit the end timestamp
-                step_next_metadata();
-            }
-            else {
-                next_meta = null;
-                return;
-            }
-        }
-
-        if (!cur_meta.timestamp.isBefore(last_metadata_time))
-            return;
-
-        // This is the last metadata value for this sample range
-        if (next_meta == null)
-            return;
-
-        // Update to next metadata until we run out or the sample is the same or later timestamp
-        // while (current sample is the same time as or after the next metadata)
-        while (!cur_sample_time.isBefore(next_meta.timestamp))
-        {
-            cur_meta = next_meta;
-            Activator.getLogger().log(Level.FINE, "Set current metadata {0}, last timestamp is {1}", new Object[] {cur_meta, last_metadata_time});
-
-            if (cur_meta.timestamp.isBefore(last_metadata_time))
-            {
-                //We expect more metadata
-                step_next_metadata();
-            }
-            else
-            {
-                next_meta = null;
-                return;
-            }
-        }
-    }
+    // private void update_meta() throws Exception
+    // {
+    // if (cur_meta == null)
+    // {
+    // try
+    // {
+    // step_next_metadata();
+    // }
+    // catch (Exception e)
+    // {
+    // throw new Exception ("Could not set initial metadata object", e);
+    // }
+    //
+    // cur_meta = next_meta;
+    // Activator.getLogger().log(Level.FINE, "Set current metadata {0}, last
+    // timestamp is {1}", new Object[] {cur_meta, last_metadata_time});
+    //
+    // if (cur_meta.timestamp.isBefore(last_metadata_time))
+    // {
+    // // There should be more metadata, because we haven't hit the end
+    // timestamp
+    // step_next_metadata();
+    // }
+    // else {
+    // next_meta = null;
+    // return;
+    // }
+    // }
+    //
+    // if (!cur_meta.timestamp.isBefore(last_metadata_time))
+    // return;
+    //
+    // // This is the last metadata value for this sample range
+    // if (next_meta == null)
+    // return;
+    //
+    // // Update to next metadata until we run out or the sample is the same or
+    // later timestamp
+    // // while (current sample is the same time as or after the next metadata)
+    // while (!cur_sample_time.isBefore(next_meta.timestamp))
+    // {
+    // cur_meta = next_meta;
+    // Activator.getLogger().log(Level.FINE, "Set current metadata {0}, last
+    // timestamp is {1}", new Object[] {cur_meta, last_metadata_time});
+    //
+    // if (cur_meta.timestamp.isBefore(last_metadata_time))
+    // {
+    // //We expect more metadata
+    // step_next_metadata();
+    // }
+    // else
+    // {
+    // next_meta = null;
+    // return;
+    // }
+    // }
+    // }
 
     public boolean step() throws Exception
     {
@@ -249,7 +255,7 @@ public class ChunkReader extends InfluxDBSampleDecoder
 
         cur_sample_values = vals;
         cur_sample_time = InfluxDBUtil.fromInfluxDBTimeFormat(this.getValue("time"));
-        update_meta();
+        // update_meta();
 
         Activator.getLogger().log(Level.FINER, () -> "sample step success: " + this.toString());
         step_count++;
@@ -265,7 +271,7 @@ public class ChunkReader extends InfluxDBSampleDecoder
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append(cur_meta.toString()).append("\n");
+        // sb.append(cur_meta.toString()).append("\n");
         sb.append(InfluxDBResults.makeSeriesTable(Arrays.asList(cur_sample_columns), Arrays.asList(cur_sample_values)));
         return sb.toString();
     }
@@ -287,10 +293,10 @@ public class ChunkReader extends InfluxDBSampleDecoder
         return cur_column_map.containsKey(colname);
     }
 
-    @Override
-    public MetaObject getMeta()
-    {
-        return cur_meta;
-    }
+    // @Override
+    // public MetaObject getMeta()
+    // {
+    // return cur_meta;
+    // }
 
 }

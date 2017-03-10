@@ -19,6 +19,8 @@ import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.SampleMode;
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
+import org.csstudio.archive.influxdb.InfluxDBQueries.DBNameMap;
+import org.csstudio.archive.influxdb.InfluxDBQueries.DefaultDBNameMap;
 import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.influxdb.InfluxDB;
@@ -39,6 +41,8 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
 
     /** InfluxDB statements */
     final private InfluxDBQueries influxQuery;
+
+    final static private DBNameMap dbnames = new DefaultDBNameMap();
 
     /** Configured engines mapped by unique configuration id */
     final private Map<Integer, EngineConfig> engines_id2obj = new HashMap<Integer, EngineConfig>();
@@ -79,7 +83,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
         next_channel_id = 100;
 
         influxdb = InfluxDBUtil.connect(url, user, password);
-        influxQuery = new InfluxDBQueries(influxdb);
+        influxQuery = new InfluxDBQueries(influxdb, dbnames);
     }
 
     /** {@inheritDoc} */

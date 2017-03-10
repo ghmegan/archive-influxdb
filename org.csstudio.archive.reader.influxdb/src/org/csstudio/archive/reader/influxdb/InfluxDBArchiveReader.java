@@ -13,22 +13,22 @@ package org.csstudio.archive.reader.influxdb;
 //import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
+import org.csstudio.archive.influxdb.InfluxDBQueries.DBNameMap;
+import org.csstudio.archive.influxdb.InfluxDBQueries.DefaultDBNameMap;
 import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.reader.ArchiveInfo;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.UnknownChannelException;
 import org.csstudio.archive.reader.ValueIterator;
+import org.csstudio.archive.reader.influxdb.raw.ConnectionCache;
 import org.diirt.util.time.TimeDuration;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.QueryResult;
-import org.influxdb.dto.QueryResult.Series;
 
 /** ArchiveReader for InfluxDB data
  *  @author Megan Grodowitz
@@ -46,6 +46,8 @@ public class InfluxDBArchiveReader implements ArchiveReader
     //
     final private ConnectionCache.Entry influxdb;
     final private InfluxDBQueries influxQuery;
+
+    final static private DBNameMap dbnames = new DefaultDBNameMap();
 
     ///** Map of status IDs to Status strings */
     // don't need this for influx, just store the status strings as tags
@@ -87,9 +89,8 @@ public class InfluxDBArchiveReader implements ArchiveReader
 
         //TODO: other Influx read optimizations?
         timeout = InfluxDBArchivePreferences.getChunkTimeoutSecs();
-        influxdb = ConnectionCache.get(url, user, password);
-        influxQuery = new InfluxDBQueries(influxdb.getConnection());
-
+        influxdb = ConnectionCache.get(url, user, password, dbnames);
+        influxQuery = influxdb.getQueries();
     }
 
 
@@ -182,65 +183,27 @@ public class InfluxDBArchiveReader implements ArchiveReader
                 };
     }
 
-    private static String escape_specials(final String specials, String pattern)
-    {
-        for (char c : specials.toCharArray())
-        {
-            pattern = pattern.replace(String.valueOf(c), "\\" + c);
-        }
-        return pattern;
-    }
-
-    //TODO: Need more testing of glob to regex. I am not confident.
     /** {@inheritDoc} */
     @Override
     public String[] getNamesByPattern(final int key, final String glob_pattern) throws Exception
     {
-        // Escape regex special chars
-        String rx_pattern = glob_pattern.replace("\\", "\\\\");
-        rx_pattern = escape_specials(".^$(){}:+|[]", rx_pattern);
-
-        rx_pattern = rx_pattern.replace("*", ".*");
-        rx_pattern = rx_pattern.replace('?', '.');
-
-        return perform_search(rx_pattern);
+        return getNamesByRegExp(key, InfluxDBUtil.globToRegex(glob_pattern));
     }
 
     /** {@inheritDoc} */
     @Override
     public String[] getNamesByRegExp(final int key, final String reg_exp) throws Exception
     {
-        return perform_search(reg_exp);
-    }
-
-    /** Perform channel search by name pattern
-     *  @param pattern Pattern, either SQL or Reg. Ex.
-     *  @return Channel names
-     *  @throws Exception on error
-     */
-    private String[] perform_search(final String pattern) throws Exception
-    {
         StringBuilder sb = new StringBuilder();
-        sb.append("^").append(pattern).append("$");
+        sb.append("^").append(reg_exp).append("$");
 
         final QueryResult results = influxQuery.get_newest_meta_datum_regex(sb.toString());
 
         if (results.hasError())
         {
-            throw new Exception("Error when searching for pattern '" + pattern + "' : " + results.getError());
+            throw new Exception("Error when searching for pattern '" + reg_exp + "' : " + results.getError());
         }
-
-        //System.out.println(InfluxDBResults.toString(results));
-
-        final List<Series> series = InfluxDBResults.getSeries(results);
-        Set<String> measurements = new HashSet<String>();
-
-        for (Series S : series)
-        {
-            measurements.add(S.getName());
-        }
-
-        return measurements.toArray(new String[measurements.size()]);
+        return InfluxDBResults.getMeasurements(results);
     }
 
     /** {@inheritDoc} */
@@ -262,7 +225,7 @@ public class InfluxDBArchiveReader implements ArchiveReader
     public ValueIterator getRawValues(final String channel_name,
             final Instant start, final Instant end) throws Exception
     {
-        return new RawSampleIterator(this, channel_name, start, end);
+        return new SampleIterator(this, channel_name, start, end);
     }
 
     /** {@inheritDoc} */

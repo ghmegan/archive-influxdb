@@ -13,6 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.reader.influxdb.raw.Preferences;
 import org.diirt.vtype.VType;
 import org.influxdb.dto.QueryResult;
 
@@ -20,7 +21,7 @@ import org.influxdb.dto.QueryResult;
  *  @author Kay Kasemir
  *  @author Megan Grodowitz (InfluxDB)
  */
-public class RawSampleIterator extends AbstractInfluxDBValueIterator
+public class SampleIterator extends AbstractInfluxDBValueIterator
 {
     /** Queue of result chunks of the sample query */
     final BlockingQueue<QueryResult> sample_queue = new LinkedBlockingQueue<>();
@@ -45,7 +46,7 @@ public class RawSampleIterator extends AbstractInfluxDBValueIterator
      *  @param end End time
      *  @throws Exception on error
      */
-    public RawSampleIterator(final InfluxDBArchiveReader reader,
+    public SampleIterator(final InfluxDBArchiveReader reader,
             final String channel_name, final Instant start,
             final Instant end) throws Exception
     {

@@ -18,7 +18,7 @@ import org.csstudio.archive.reader.ArchiveReaderFactory;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
+public class InfluxDBRawReaderFactory implements ArchiveReaderFactory
 {
     /** {@inheritDoc} */
     @Override
@@ -52,7 +52,7 @@ public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
             final String password = InfluxDBArchivePreferences.getPassword();
             //final String stored_proc = Preferences.getStoredProcedure();
             final String actual_url = InfluxDBArchivePreferences.getURL();
-            return new InfluxDBArchiveReader(actual_url, user, password);
+            return new InfluxDBRawReader(actual_url, user, password);
         }
     }
 }

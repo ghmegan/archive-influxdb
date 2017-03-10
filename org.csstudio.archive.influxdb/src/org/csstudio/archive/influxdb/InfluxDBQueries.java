@@ -1,6 +1,8 @@
 package org.csstudio.archive.influxdb;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 
@@ -11,18 +13,50 @@ import org.influxdb.dto.QueryResult;
 public class InfluxDBQueries
 {
     private final InfluxDB influxdb;
-    //private final int chunkSize;
 
-    public InfluxDBQueries(InfluxDB influxdb)
-    {
-        this.influxdb = influxdb;
-        //this.chunkSize = 5000;
+    abstract public static class DBNameMap {
+        public abstract String getDataDBName(final String channel_name) throws Exception;
+
+        public abstract String getMetaDBName(final String channel_name) throws Exception;
+
+        public abstract List<String> getAllDBNames();
+    };
+
+    private final DBNameMap dbnames;
+
+    public static class DefaultDBNameMap extends DBNameMap {
+        @Override
+        public String getDataDBName(String channel_name) {
+            return InfluxDBArchivePreferences.DFLT_DBNAME;
+        }
+
+        @Override
+        public String getMetaDBName(String channel_name) {
+            return InfluxDBArchivePreferences.DFLT_METADBNAME;
+        }
+
+        @Override
+        public List<String> getAllDBNames() {
+            List<String> ret = new ArrayList<String>();
+            ret.add(InfluxDBArchivePreferences.DFLT_DBNAME);
+            ret.add(InfluxDBArchivePreferences.DFLT_METADBNAME);
+            return ret;
+        }
+    };
+
+    public void initDatabases(final InfluxDB influxdb) {
+        for (String db : dbnames.getAllDBNames()) {
+            influxdb.createDatabase(db);
+        }
     }
 
-    public InfluxDBQueries(InfluxDB influxdb, int chunkSize)
+    public InfluxDBQueries(InfluxDB influxdb, final DBNameMap dbnames)
     {
         this.influxdb = influxdb;
-        //this.chunkSize = chunkSize;
+        if (dbnames == null)
+            this.dbnames = new DefaultDBNameMap();
+        else
+            this.dbnames = dbnames;
     }
 
     //TODO: timestamps come back with wrong values stored in Double... would be faster if it worked.
@@ -107,12 +141,12 @@ public class InfluxDBQueries
         return get_points(sb, starttime, endtime, limit);
     }
 
-    public QueryResult get_oldest_channel_sample(final String channel_name)
+    public QueryResult get_oldest_channel_sample(final String channel_name) throws Exception
     {
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, null, null, 1L),
-                InfluxDBUtil.getDataDBName(channel_name));
+                dbnames.getDataDBName(channel_name));
     }
 
     //    public QueryResult get_newest_channel_samples(final String channel_name, Long num)
@@ -120,23 +154,25 @@ public class InfluxDBQueries
     //        return makeQuery(
     //                influxdb,
     //                get_channel_points("*", channel_name, null, null, -num),
-    //                InfluxDBUtil.getDataDBName(channel_name));
+    // dbnames.getDataDBName(channel_name));
     //    }
 
-    public QueryResult get_newest_channel_samples(final String channel_name, final Instant starttime, final Instant endtime, Long num)
+    public QueryResult get_newest_channel_samples(final String channel_name, final Instant starttime,
+            final Instant endtime, Long num) throws Exception
     {
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, starttime, endtime, -num),
-                InfluxDBUtil.getDataDBName(channel_name));
+                dbnames.getDataDBName(channel_name));
     }
 
-    public QueryResult get_channel_samples(final String channel_name, final Instant starttime, final Instant endtime, Long num)
+    public QueryResult get_channel_samples(final String channel_name, final Instant starttime, final Instant endtime,
+            Long num) throws Exception
     {
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, starttime, endtime, num),
-                InfluxDBUtil.getDataDBName(channel_name));
+                dbnames.getDataDBName(channel_name));
     }
 
 
@@ -146,37 +182,41 @@ public class InfluxDBQueries
         makeChunkQuery(
                 chunkSize, consumer, influxdb,
                 get_channel_points("*", channel_name, starttime, endtime, limit),
-                InfluxDBUtil.getDataDBName(channel_name));
+                dbnames.getDataDBName(channel_name));
     }
 
+    public QueryResult get_newest_channel_datum_regex(final String pattern) throws Exception {
+        return makeQuery(influxdb, get_pattern_points("*", pattern, null, null, -1L), dbnames.getDataDBName(pattern));
+    }
 
-    public QueryResult get_newest_meta_data(final String channel_name, final Instant starttime, final Instant endtime, Long num)
+    public QueryResult get_newest_meta_data(final String channel_name, final Instant starttime, final Instant endtime,
+            Long num) throws Exception
     {
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, starttime, endtime, -num),
-                InfluxDBUtil.getMetaDBName(channel_name));
+                dbnames.getMetaDBName(channel_name));
     }
 
-    public QueryResult get_newest_meta_datum(final String channel_name)
+    public QueryResult get_newest_meta_datum(final String channel_name) throws Exception
     {
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, null, null, -1L),
-                InfluxDBUtil.getMetaDBName(channel_name));
+                dbnames.getMetaDBName(channel_name));
     }
 
-    public QueryResult get_newest_meta_datum_regex(final String pattern) {
+    public QueryResult get_newest_meta_datum_regex(final String pattern) throws Exception {
         return makeQuery(influxdb, get_pattern_points("*", pattern, null, null, -1L),
-                InfluxDBUtil.getMetaDBName(pattern));
+                dbnames.getMetaDBName(pattern));
     }
 
-    public QueryResult get_all_meta_data(final String channel_name)
+    public QueryResult get_all_meta_data(final String channel_name) throws Exception
     {
         return makeQuery(
                 influxdb,
                 get_channel_points("*", channel_name, null, null, null),
-                InfluxDBUtil.getMetaDBName(channel_name));
+                dbnames.getMetaDBName(channel_name));
     }
 
     public void chunk_get_channel_metadata(final int chunkSize,
@@ -185,7 +225,7 @@ public class InfluxDBQueries
         makeChunkQuery(
                 chunkSize, consumer, influxdb,
                 get_channel_points("*", channel_name, starttime, endtime, limit),
-                InfluxDBUtil.getMetaDBName(channel_name));
+                dbnames.getMetaDBName(channel_name));
     }
 
 }

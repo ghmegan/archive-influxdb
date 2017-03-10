@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Random;
 
 import org.csstudio.archive.influxdb.InfluxDBResults;
-import org.csstudio.archive.influxdb.InfluxDBUtil;
 //import org.junit.Ignore;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.vtype.ArchiveVEnum;
@@ -86,7 +85,7 @@ public class InfluxDBArchiveWriterTest
             e.printStackTrace();
         }
 
-        InfluxDBUtil.initDatabases(writer.getConnectionInfo().influxdb);
+        writer.getQueries().initDatabases(writer.getConnectionInfo().influxdb);
     }
 
     @After
@@ -131,7 +130,7 @@ public class InfluxDBArchiveWriterTest
         return channel;
     }
 
-    private void printSomePoints(final String name)
+    private void printSomePoints(final String name) throws Exception
     {
         System.out.println(InfluxDBResults.toString(writer.getQueries().get_all_meta_data(name)));
         System.out.println(InfluxDBResults.toString(writer.getQueries().get_newest_channel_samples(name, null, null, 8L)));
@@ -284,7 +283,7 @@ public class InfluxDBArchiveWriterTest
     }
 
     @Test
-    public void demoWriteTestPV() throws Exception {
+    public void demoWriteRampPV() throws Exception {
         if (writer == null)
             return;
 
@@ -315,4 +314,37 @@ public class InfluxDBArchiveWriterTest
         }
         writer.flush();
     }
+
+    @Test
+    public void demoUpdateRampPV() throws Exception {
+        if (writer == null)
+            return;
+
+        final String test_channel = "rampPV0";
+        final int sample_count = 1000;
+
+        final WriteChannel channel = getMakeChannel(test_channel);
+
+        double min = 0.0, max = 200.0, step = 2.0;
+        double val = min;
+
+        for (int i = 0; i < sample_count; i++) {
+            Instant stamp = Instant.now();
+            writer.addSample(channel, new ArchiveVNumber(stamp, AlarmSeverity.NONE, "OK", display, val));
+
+            val += step;
+            if ((val > max) || (val < min)) {
+                step = -step;
+            }
+            writer.flush();
+            if ((i % 10) == 0) {
+                System.out.println("Wrote: " + i);
+            }
+
+            Thread.sleep(100);
+
+        }
+        writer.flush();
+    }
+
 }

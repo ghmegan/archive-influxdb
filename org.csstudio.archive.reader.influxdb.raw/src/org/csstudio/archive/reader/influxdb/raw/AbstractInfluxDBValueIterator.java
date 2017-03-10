@@ -16,14 +16,14 @@ import org.csstudio.archive.reader.ValueIterator;
 @SuppressWarnings("nls")
 abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
 {
-    final protected InfluxDBArchiveReader reader;
+    final protected InfluxDBRawReader reader;
     final protected String channel_name;
 
     /** @param reader InfluxDBArchiveReader
      *  @param channel_name ID of channel
      *  @throws Exception on error
      */
-    AbstractInfluxDBValueIterator(final InfluxDBArchiveReader reader,
+    AbstractInfluxDBValueIterator(final InfluxDBRawReader reader,
             final String channel_name) throws Exception
     {
         this.reader = reader;

@@ -14,7 +14,6 @@ import org.influxdb.InfluxDBFactory;
 
 public class InfluxDBUtil
 {
-
     private static final BigInteger nanomult = new BigInteger("1000000000");
 
     public static BigInteger toNano(Instant time)
@@ -76,20 +75,7 @@ public class InfluxDBUtil
         throw new Exception ("Cannot convert nonstring object to instant : " + timestamp.getClass().getName());
     }
 
-    public static String getDataDBName(final String channel_name)
-    {
-        return InfluxDBArchivePreferences.DBNAME;
-    }
 
-    public static String getMetaDBName(final String channel_name)
-    {
-        return InfluxDBArchivePreferences.METADBNAME;
-    }
-
-    public static void initDatabases(final InfluxDB influxdb) {
-        influxdb.createDatabase(InfluxDBArchivePreferences.DBNAME);
-        influxdb.createDatabase(InfluxDBArchivePreferences.METADBNAME);
-    }
 
     public static InfluxDB connect(final String url, final String user, final String password) throws Exception
     {
@@ -113,6 +99,25 @@ public class InfluxDBUtil
             throw new Exception("Failed to connect to InfluxDB as user " + user + " at " + url, e);
         }
         return influxdb;
+    }
+
+    private static String escape_specials(final String specials, String pattern) {
+        for (char c : specials.toCharArray()) {
+            pattern = pattern.replace(String.valueOf(c), "\\" + c);
+        }
+        return pattern;
+    }
+
+    // TODO: Need more testing of glob to regex. I am not confident.
+    public static String globToRegex(final String glob_pattern) {
+        // Escape regex special chars
+        String rx_pattern = glob_pattern.replace("\\", "\\\\");
+        rx_pattern = escape_specials(".^$(){}:+|[]", rx_pattern);
+
+        rx_pattern = rx_pattern.replace("*", ".*");
+        rx_pattern = rx_pattern.replace('?', '.');
+
+        return rx_pattern;
     }
 
     public static class ConnectionInfo

@@ -16,7 +16,8 @@ Require-Bundle: org.eclipse.core.runtime;bundle-version="3.6.0",
  org.diirt.vtype,
  org.csstudio.platform.libs.jdbc;bundle-version="1.3.0",
  org.csstudio.archive.influxdb;bundle-version="4.0.0",
- org.influxdb.java;bundle-version="2.6.0"
+ org.influxdb.java;bundle-version="2.6.0",
+ org.csstudio.archive.reader.influxdb.raw;bundle-version="4.2.1"
 Bundle-Activator: org.csstudio.archive.reader.influxdb.Activator
 Bundle-ActivationPolicy: lazy
 Export-Package: org.csstudio.archive.reader.influxdb

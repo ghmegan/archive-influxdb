@@ -9,13 +9,4 @@
             prefix="influxdb">
       </ArchiveReader>
    </extension>
-   <extension
-         point="org.eclipse.ui.preferencePages">
-      <page
-            category="org.csstudio.platform.ui.css.applications.trends"
-            class="org.csstudio.archive.reader.influxdb.PreferencePage"
-            id="org.csstudio.archive.reader.influxdb.preferences"
-            name="Influxdb Archive">
-      </page>
-   </extension>
 </plugin>
