@@ -42,7 +42,7 @@ public class InfluxDBRawReader implements ArchiveReader
     final private InfluxDBQueries influxQuery;
 
     public static class DBNameMapRaw extends DBNameMap {
-        private String mydbname;
+        private final String mydbname;
 
         public DBNameMapRaw(final String dbname) {
             mydbname = dbname;
@@ -118,7 +118,7 @@ public class InfluxDBRawReader implements ArchiveReader
     }
 
     /** @return Query statements */
-    InfluxDBQueries getQueries()
+    public InfluxDBQueries getQueries()
     {
         return influxQuery;
     }
