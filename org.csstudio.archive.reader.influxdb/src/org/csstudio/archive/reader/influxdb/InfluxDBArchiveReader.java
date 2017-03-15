@@ -89,8 +89,8 @@ public class InfluxDBArchiveReader implements ArchiveReader
 
         //TODO: other Influx read optimizations?
         timeout = InfluxDBArchivePreferences.getChunkTimeoutSecs();
-        influxdb = ConnectionCache.get(url, user, password, dbnames);
-        influxQuery = influxdb.getQueries();
+        influxdb = ConnectionCache.get(url, user, password);
+        influxQuery = new InfluxDBQueries(influxdb.getConnection(), dbnames);
     }
 
 

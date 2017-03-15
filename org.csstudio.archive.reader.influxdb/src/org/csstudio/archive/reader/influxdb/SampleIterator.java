@@ -13,6 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.reader.influxdb.raw.AbstractInfluxDBValueIterator;
 import org.csstudio.archive.reader.influxdb.raw.Preferences;
 import org.diirt.vtype.VType;
 import org.influxdb.dto.QueryResult;

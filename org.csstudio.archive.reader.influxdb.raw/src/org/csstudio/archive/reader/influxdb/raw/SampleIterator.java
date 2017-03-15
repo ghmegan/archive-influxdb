@@ -13,6 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.influxdb.InfluxDBSeriesInfo;
 import org.diirt.vtype.VType;
 import org.influxdb.dto.QueryResult;
 
@@ -42,16 +43,17 @@ public class SampleIterator extends AbstractInfluxDBValueIterator
      *  @throws Exception on error
      */
     public SampleIterator(final InfluxDBRawReader reader,
-            final String channel_name, final Instant start,
+            final InfluxDBSeriesInfo sample_series, final Instant start,
             final Instant end) throws Exception
     {
-        super(reader, channel_name);
+        super(reader, sample_series.getMeasurement());
         Instant sample_endtime, sample_starttime;
 
         sample_chunk_size = Preferences.getChunkSize();
 
         //Get the timestamp of the last sample at or before the indicated start time.
-        sample_starttime = InfluxDBResults.getTimestamp(reader.getQueries().get_newest_channel_samples(channel_name, null, start, 1L));
+        sample_starttime = InfluxDBResults.getTimestamp(
+                reader.getQueries().get_newest_channel_samples(sample_series.getMeasurement(), null, start, 1L));
         if (sample_starttime == null)
         {
             //No samples at or before start, find oldest sample in range
@@ -78,7 +80,8 @@ public class SampleIterator extends AbstractInfluxDBValueIterator
                 sample_queue.add(result);
             }});
 
-        samples = new ChunkReader(sample_queue, sample_endtime, reader.getTimeout());
+        samples = new ChunkReader(sample_queue, sample_endtime, reader.getTimeout(),
+                new InfluxDBRawDecoder.Factory(sample_series.getMeasurement()));
 
         if (samples.step())
             next_value = samples.decodeSampleValue();

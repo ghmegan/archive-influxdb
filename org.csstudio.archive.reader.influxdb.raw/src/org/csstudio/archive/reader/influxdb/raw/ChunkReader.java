@@ -21,6 +21,7 @@ import java.util.logging.Level;
 
 import org.csstudio.archive.influxdb.InfluxDBResults;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
+import org.diirt.vtype.VType;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Series;
 
@@ -28,7 +29,7 @@ import org.influxdb.dto.QueryResult.Series;
  *  @author Megan Grodowitz
  */
 
-public class ChunkReader extends InfluxDBRawDecoder
+public class ChunkReader extends AbstractInfluxDBValueLookup
 {
     /** Queue of result chunks of the sample query */
     final BlockingQueue<QueryResult> sample_queue;
@@ -74,8 +75,11 @@ public class ChunkReader extends InfluxDBRawDecoder
 
     private int recv_vals;
 
+    /** Decode samples into Vtype **/
+    private final AbstractInfluxDBValueDecoder decoder;
+
     ChunkReader(final BlockingQueue<QueryResult> sample_queue, final Instant last_sample_time,
-            final int timeout_secs)
+            final int timeout_secs, final AbstractInfluxDBValueDecoder.Factory decoder_factory)
     {
         this.sample_queue = sample_queue;
         // this.metadata_queue = metadata_queue;
@@ -92,6 +96,12 @@ public class ChunkReader extends InfluxDBRawDecoder
 
         this.step_count = 0;
         this.recv_vals = 0;
+
+        this.decoder = decoder_factory.create(this);
+    }
+
+    public VType decodeSampleValue() throws Exception {
+        return decoder.decodeSampleValue();
     }
 
     private boolean poll_next_sample_series() throws Exception

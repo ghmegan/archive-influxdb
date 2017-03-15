@@ -11,6 +11,8 @@ import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.csstudio.archive.reader.influxdb.raw.AbstractInfluxDBValueIterator;
 import org.diirt.vtype.VType;
 
 /** Value Iterator that provides 'optimized' data by calling

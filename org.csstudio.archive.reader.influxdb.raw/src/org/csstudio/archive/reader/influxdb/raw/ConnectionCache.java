@@ -14,8 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.csstudio.archive.influxdb.InfluxDBQueries;
-import org.csstudio.archive.influxdb.InfluxDBQueries.DBNameMap;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.influxdb.InfluxDB;
 
@@ -31,14 +29,12 @@ public class ConnectionCache
     private static class ID
     {
         private final String url, user, password;
-        private final Object dbnames;
 
-        ID(final String url, final String user, final String password, final Object dbnames)
+        ID(final String url, final String user, final String password)
         {
             this.url = Objects.requireNonNull(url);
             this.user = user;
             this.password = password;
-            this.dbnames = dbnames;
         }
 
         @Override
@@ -49,13 +45,12 @@ public class ConnectionCache
             final ID other = (ID) obj;
             return url.equals(other.url)   &&
                     user.equals(other.user) &&
-                    (dbnames == other.dbnames) &&
                     Objects.equals(password, other.password);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(url, user, password, dbnames);
+            return Objects.hash(url, user, password);
         }
     }
 
@@ -65,13 +60,11 @@ public class ConnectionCache
         private final ID id;
         private final AtomicInteger references = new AtomicInteger(1);
         private final InfluxDB influxdb;
-        private final InfluxDBQueries queries;
 
-        Entry(final ID id, final InfluxDB influxdb, DBNameMap dbnames)
+        Entry(final ID id, final InfluxDB influxdb)
         {
             this.id = id;
             this.influxdb = influxdb;
-            this.queries = new InfluxDBQueries(influxdb, dbnames);
         }
 
         /**
@@ -82,11 +75,6 @@ public class ConnectionCache
         {
             return this.influxdb;
         }
-
-        public InfluxDBQueries getQueries() {
-            return this.queries;
-        }
-
     }
 
     /** Cache */
@@ -123,17 +111,17 @@ public class ConnectionCache
      *             on error
      * @see #release(Entry)
      */
-    public static Entry get(final String url, final String user, final String password, DBNameMap dbnames)
+    public static Entry get(final String url, final String user, final String password)
             throws Exception
     {
-        final ID id = new ID(url, user, password, dbnames);
+        final ID id = new ID(url, user, password);
         synchronized (cache)
         {
             Entry entry = find(id);
             if (entry == null)
             {
                 logger.log(Level.FINE, "Creating Cached Connection to {0}", url);
-                entry = new Entry(id, InfluxDBUtil.connect(url, user, password), dbnames);
+                entry = new Entry(id, InfluxDBUtil.connect(url, user, password));
                 // TODO: Can we set read only mode for this connection? Do we need to?
                 //entry.getConnection().setReadOnly(true);
             }

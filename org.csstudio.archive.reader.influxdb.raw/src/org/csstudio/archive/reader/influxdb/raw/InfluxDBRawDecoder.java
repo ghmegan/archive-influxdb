@@ -22,24 +22,42 @@ import org.diirt.vtype.ValueFactory;
 /** Decode values into VType
  *  @author Megan Grodowitz
  */
-public abstract class InfluxDBRawDecoder
+public class InfluxDBRawDecoder extends AbstractInfluxDBValueDecoder
 {
-    public abstract Object getValue(String colname) throws Exception;
+    private final AbstractInfluxDBValueLookup vals;
+    private final String fieldname;
 
-    public abstract boolean hasValue(String colname);
+    public InfluxDBRawDecoder(final AbstractInfluxDBValueLookup vals, final String fieldname) {
+        this.vals = vals;
+        this.fieldname = fieldname;
+    }
 
-    protected VType decodeSampleValue() throws Exception
+    public static class Factory extends AbstractInfluxDBValueDecoder.Factory {
+
+        private String fieldname;
+
+        Factory(final String fieldname) {
+            this.fieldname = fieldname;
+        }
+
+        @Override
+        public AbstractInfluxDBValueDecoder create(AbstractInfluxDBValueLookup vals) {
+            return new InfluxDBRawDecoder(vals, fieldname);
+        }
+    }
+
+    @Override
+    public VType decodeSampleValue() throws Exception
     {
         final Display display = ValueFactory.newDisplay(0.0, 0.0, 0.0, "double", NumberFormats.format(8), 10.0, 10.0,
                 10.0, 0.0, 10.0);
         final AlarmSeverity severity = AlarmSeverity.UNDEFINED;
         final String status = "OK";
-        final Instant time = InfluxDBUtil.fromInfluxDBTimeFormat(getValue("time"));
+        final Instant time = InfluxDBUtil.fromInfluxDBTimeFormat(vals.getValue("time"));
 
-        // TODO: change to correct field
-        Object val = getValue("string.0");
+        Object val = vals.getValue(fieldname);
         if (val == null) {
-            throw new Exception("Did not find string.0 field where expected");
+            throw new Exception("Did not find field: " + fieldname);
         }
 
         Double dbl = null;
@@ -59,5 +77,6 @@ public abstract class InfluxDBRawDecoder
 
         return new ArchiveVString(time, severity, status, str);
     }
+
 
 }

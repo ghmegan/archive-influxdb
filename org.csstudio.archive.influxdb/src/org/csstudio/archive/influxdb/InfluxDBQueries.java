@@ -82,20 +82,17 @@ public class InfluxDBQueries
     }
 
 
-    private static String get_points(final StringBuilder sb, final Instant starttime, final Instant endtime,
+    private static String get_points(final StringBuilder sb, final List<String> where_clauses,
             final Long limit)
     {
-        if (starttime != null)
+        if ((where_clauses != null) && (where_clauses.size() > 0))
         {
-            sb.append(" WHERE time >= ").append(InfluxDBUtil.toNano(starttime).toString());
-        }
-        if (endtime != null)
-        {
-            if (starttime == null)
-                sb.append(" WHERE");
-            else
-                sb.append(" AND");
-            sb.append(" time <= ").append(InfluxDBUtil.toNano(endtime).toString());
+            sb.append(" WHERE ");
+            for (int idx = 0; idx < where_clauses.size(); idx++) {
+                if (idx > 0)
+                    sb.append(" AND ");
+                sb.append(where_clauses.get(idx));
+            }
         }
         sb.append(" ORDER BY time ");
         if (limit != null)
@@ -108,37 +105,49 @@ public class InfluxDBQueries
         return sb.toString();
     }
 
-    /**
-     * Create a query string to extract points, ordered by time, for a given
-     * channel
-     *
-     * @param channel_name
-     *            String name of channel
-     * @param starttime
-     *            initial timestamp
-     * @param endtime
-     *            final timestamp
-     * @param limit
-     *            max number of samples to return
-     * @return Query string
-     *
-     *         starttime may be null to indicate beginning of time endtime may
-     *         be null to indicate no end time cutoff limit may be null for no
-     *         limit, positive for list of oldest points in range, negative for
-     *         list of newest (most recent) points in range
-     */
+    private static List<String> getTimeClauses(final Instant starttime, final Instant endtime) {
+        if ((starttime == null) && (endtime == null))
+            return null;
+
+        List<String> where_clauses = new ArrayList<String>();
+        if (starttime != null) {
+            where_clauses.add("time >= " + InfluxDBUtil.toNano(starttime).toString());
+        }
+        if (endtime != null) {
+            where_clauses.add("time <= " + InfluxDBUtil.toNano(endtime).toString());
+        }
+        return where_clauses;
+    }
+
+
     public static String get_channel_points(final String select_what, final String channel_name,
             final Instant starttime, final Instant endtime, final Long limit) {
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT ").append(select_what).append(" FROM \"").append(channel_name).append('\"');
-        return get_points(sb, starttime, endtime, limit);
+        return get_points(sb, getTimeClauses(starttime, endtime), limit);
+    }
+
+    public static String get_series_points(final InfluxDBSeriesInfo series, final Instant starttime,
+            final Instant endtime, final Long limit) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("SELECT \"").append(series.field).append("\" FROM \"").append(series.measurement).append('\"');
+
+        List<String> where_clauses = series.getTagClauses();
+        final List<String> time_clauses = getTimeClauses(starttime, endtime);
+
+        if (where_clauses == null)
+            where_clauses = time_clauses;
+        else if (time_clauses != null)
+            where_clauses.addAll(time_clauses);
+
+        return get_points(sb, where_clauses, limit);
     }
 
     public static String get_pattern_points(final String select_what, final String pattern, final Instant starttime,
             final Instant endtime, final Long limit) {
         StringBuilder sb = new StringBuilder();
         sb.append("SELECT ").append(select_what).append(" FROM /").append(pattern).append('/');
-        return get_points(sb, starttime, endtime, limit);
+        return get_points(sb, getTimeClauses(starttime, endtime), limit);
     }
 
     public QueryResult get_oldest_channel_sample(final String channel_name) throws Exception
@@ -148,14 +157,6 @@ public class InfluxDBQueries
                 get_channel_points("*", channel_name, null, null, 1L),
                 dbnames.getDataDBName(channel_name));
     }
-
-    //    public QueryResult get_newest_channel_samples(final String channel_name, Long num)
-    //    {
-    //        return makeQuery(
-    //                influxdb,
-    //                get_channel_points("*", channel_name, null, null, -num),
-    // dbnames.getDataDBName(channel_name));
-    //    }
 
     public QueryResult get_newest_channel_samples(final String channel_name, final Instant starttime,
             final Instant endtime, Long num) throws Exception

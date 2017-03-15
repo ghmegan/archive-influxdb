@@ -9,14 +9,13 @@ package org.csstudio.archive.reader.influxdb.raw;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
 import org.csstudio.archive.influxdb.InfluxDBQueries.DBNameMap;
 import org.csstudio.archive.influxdb.InfluxDBResults;
+import org.csstudio.archive.influxdb.InfluxDBSeriesInfo;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
 import org.csstudio.archive.reader.ArchiveInfo;
@@ -34,6 +33,7 @@ public class InfluxDBRawReader implements ArchiveReader
 {
     final private String url;
     final private String user;
+    final private String dbname;
     final private int password;
     /** Timeout when waiting for chunks of data */
     final private int timeout;
@@ -42,22 +42,15 @@ public class InfluxDBRawReader implements ArchiveReader
     final private InfluxDBQueries influxQuery;
 
     public static class DBNameMapRaw extends DBNameMap {
-        final private Map<String, String> name_db_map;
+        private String mydbname;
 
-        public DBNameMapRaw() {
-            name_db_map = new HashMap<String, String>();
-        }
-
-        public void addNameToDBMapping(final String name, final String db) {
-            name_db_map.put(name, db);
+        public DBNameMapRaw(final String dbname) {
+            mydbname = dbname;
         }
 
         @Override
         public String getDataDBName(String field_name) throws Exception {
-            final String ret = name_db_map.get(field_name);
-            if (ret == null)
-                throw new Exception("No DB mapping for raw read of field: " + field_name);
-            return ret;
+            return mydbname;
         }
 
         @Override
@@ -67,11 +60,11 @@ public class InfluxDBRawReader implements ArchiveReader
 
         @Override
         public List<String> getAllDBNames() {
-            return new ArrayList<String>(name_db_map.values());
+            ArrayList<String> ret = new ArrayList<String>();
+            ret.add(mydbname);
+            return ret;
         }
     }
-
-    final static private DBNameMapRaw dbnames = new DBNameMapRaw();
 
     /** Initialize
      *  @param url Database URL
@@ -81,10 +74,10 @@ public class InfluxDBRawReader implements ArchiveReader
      *  @param stored_procedure Stored procedure or "" for client-side optimization
      *  @throws Exception on error
      */
-    public InfluxDBRawReader(final String url, final String dbName, final String fieldname)
+    public InfluxDBRawReader(final String url, final String dbName)
             throws Exception
     {
-        this(url, null, null, dbName, fieldname);
+        this(url, null, null, dbName);
     }
 
     /** Initialize
@@ -96,19 +89,17 @@ public class InfluxDBRawReader implements ArchiveReader
      *  @param use_array_blob Use BLOB for array elements?
      *  @throws Exception on error
      */
-    public InfluxDBRawReader(final String url, final String user, final String password, final String dbName,
-            final String fieldname)
+    public InfluxDBRawReader(final String url, final String user, final String password, final String dbName)
             throws Exception
     {
         this.url = url;
         this.user = user;
         this.password = (password == null) ? 0 : password.length();
-
-        dbnames.addNameToDBMapping(fieldname, dbName);
+        this.dbname = dbName;
 
         timeout = InfluxDBArchivePreferences.getChunkTimeoutSecs();
-        influxdb = ConnectionCache.get(url, user, password, dbnames);
-        influxQuery = influxdb.getQueries();
+        influxdb = ConnectionCache.get(url, user, password);
+        influxQuery = new InfluxDBQueries(influxdb.getConnection(), new DBNameMapRaw(dbName));
     }
 
 
@@ -201,6 +192,7 @@ public class InfluxDBRawReader implements ArchiveReader
     }
 
 
+
     /** {@inheritDoc} */
     @Override
     public ValueIterator getRawValues(final int key, final String name,
@@ -216,15 +208,15 @@ public class InfluxDBRawReader implements ArchiveReader
      *  @return {@link ValueIterator} for raw samples
      *  @throws Exception on error
      */
-    public ValueIterator getRawValues(final String channel_name,
+    public ValueIterator getRawValues(final String name,
             final Instant start, final Instant end) throws Exception
     {
-        return new SampleIterator(this, channel_name, start, end);
+        return new SampleIterator(this, InfluxDBSeriesInfo.decodeLineProtocol(name), start, end);
     }
 
     /** {@inheritDoc} */
     @Override
-    public ValueIterator getOptimizedValues(final int key, final String channel_name,
+    public ValueIterator getOptimizedValues(final int key, final String name,
             final Instant start, final Instant end, int count) throws UnknownChannelException, Exception
     {
         // TODO: This function does not currently work. Do not use.
@@ -233,7 +225,7 @@ public class InfluxDBRawReader implements ArchiveReader
 
         // TODO: Implement server side downsample query
         // TODO: Implement fallback client side downsample
-        return new SampleIterator(this, channel_name, start, end);
+        return new SampleIterator(this, InfluxDBSeriesInfo.decodeLineProtocol(name), start, end);
     }
 
 

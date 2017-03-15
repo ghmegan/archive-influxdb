@@ -7,6 +7,7 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb.raw;
 
+import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.ValueIterator;
 
 /** Base for ValueIterators that read from the InfluxDB
@@ -16,14 +17,14 @@ import org.csstudio.archive.reader.ValueIterator;
 @SuppressWarnings("nls")
 abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
 {
-    final protected InfluxDBRawReader reader;
+    final protected ArchiveReader reader;
     final protected String channel_name;
 
     /** @param reader InfluxDBArchiveReader
      *  @param channel_name ID of channel
      *  @throws Exception on error
      */
-    AbstractInfluxDBValueIterator(final InfluxDBRawReader reader,
+    protected AbstractInfluxDBValueIterator(final ArchiveReader reader,
             final String channel_name) throws Exception
     {
         this.reader = reader;
