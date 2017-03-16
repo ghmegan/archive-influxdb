@@ -150,6 +150,33 @@ public class InfluxDBQueries
         return get_points(sb, getTimeClauses(starttime, endtime), limit);
     }
 
+    ///////////////////////////// RAW DATA QUERIES
+
+    public void chunk_get_series_samples(final int chunkSize, final InfluxDBSeriesInfo series, final Instant starttime,
+            final Instant endtime, Long limit, Consumer<QueryResult> consumer) throws Exception {
+        makeChunkQuery(chunkSize, consumer, influxdb, get_series_points(series, starttime, endtime, limit),
+                dbnames.getDataDBName(series.getMeasurement()));
+    }
+
+    public QueryResult get_oldest_series_sample(final InfluxDBSeriesInfo series) throws Exception {
+        return makeQuery(influxdb, get_series_points(series, null, null, 1L),
+                dbnames.getDataDBName(series.getMeasurement()));
+    }
+
+    public QueryResult get_newest_series_samples(final InfluxDBSeriesInfo series, final Instant starttime,
+            final Instant endtime, Long num) throws Exception {
+        return makeQuery(influxdb, get_series_points(series, starttime, endtime, -num),
+                dbnames.getDataDBName(series.getMeasurement()));
+    }
+
+    public QueryResult get_series_samples(final InfluxDBSeriesInfo series, final Instant starttime,
+            final Instant endtime, Long num) throws Exception {
+        return makeQuery(influxdb, get_series_points(series, starttime, endtime, num),
+                dbnames.getDataDBName(series.getMeasurement()));
+    }
+
+    ///////////////////////////// DATA ARCHIVE QUERIES
+
     public QueryResult get_oldest_channel_sample(final String channel_name) throws Exception
     {
         return makeQuery(
@@ -189,6 +216,8 @@ public class InfluxDBQueries
     public QueryResult get_newest_channel_datum_regex(final String pattern) throws Exception {
         return makeQuery(influxdb, get_pattern_points("*", pattern, null, null, -1L), dbnames.getDataDBName(pattern));
     }
+
+    ///////////////////////////// META DATA ARCHIVE QUERIES
 
     public QueryResult get_newest_meta_data(final String channel_name, final Instant starttime, final Instant endtime,
             Long num) throws Exception

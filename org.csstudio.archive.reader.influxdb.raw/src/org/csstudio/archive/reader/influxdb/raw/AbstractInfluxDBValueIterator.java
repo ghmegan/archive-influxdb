@@ -18,7 +18,7 @@ import org.csstudio.archive.reader.ValueIterator;
 abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
 {
     final protected ArchiveReader reader;
-    final protected String channel_name;
+    final protected String measurement;
 
     /** @param reader InfluxDBArchiveReader
      *  @param channel_name ID of channel
@@ -28,7 +28,7 @@ abstract public class AbstractInfluxDBValueIterator  implements ValueIterator
             final String channel_name) throws Exception
     {
         this.reader = reader;
-        this.channel_name = channel_name;
+        this.measurement = channel_name;
     }
 
     /** Release all database resources.
