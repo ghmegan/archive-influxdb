@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.time.Instant;
 
+import org.csstudio.archive.influxdb.InfluxDBDataSource;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
 import org.csstudio.archive.influxdb.InfluxDBSeriesInfo;
 import org.csstudio.archive.influxdb.InfluxDBUtil;
@@ -48,7 +49,21 @@ public class InfluxDBUtilTest {
         series = InfluxDBSeriesInfo
                 .decodeLineProtocol("weather,location\\ place=us-midwest,warnings=tstorm temperature");
         System.out.println(InfluxDBQueries.get_series_points(series, null, Instant.EPOCH, null));
+    }
 
+    @Test
+    public void testDataSourceParsing() throws Exception {
+        InfluxDBDataSource ds = InfluxDBDataSource
+                .decodeURL("infludb-raw://localhost:8086?db=mytestdb&user=me&password=badpassword");
+
+        System.out.println("url = " + ds.getURL());
+        System.out.println("db = " + ds.getArgRequired("db"));
+        System.out.println("user = " + ds.getArgRequired("user"));
+        System.out.println("password = " + ds.getArgRequired("password"));
+
+        ds = InfluxDBDataSource.decodeURL("infludb://somehost.somewhere.com:8086?db=mytestdb");
+        System.out.println("url = " + ds.getURL());
+        System.out.println("db = " + ds.getArgRequired("db"));
     }
 
 }

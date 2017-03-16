@@ -8,6 +8,7 @@
 package org.csstudio.archive.reader.influxdb;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -241,20 +242,18 @@ public class InfluxDBRawReaderTest
 
     }
 
-    // /** Locate channels by pattern */
-    // @Test
-    // public void testChannelByPattern() throws Exception
-    // {
-    // if (reader == null)
-    // return;
-    // final String pattern = channel_name.substring(0, channel_name.length()-1)
-    // + "?";
-    // System.out.println("Channels matching a pattern: " + pattern);
-    // final String[] names = reader.getNamesByPattern(1, pattern);
-    // for (String name : names)
-    // System.out.println(name);
-    // assertTrue(names.length > 0);
-    // }
+    /** Locate channels by pattern */
+    @Test
+    public void testChannelByPattern() throws Exception {
+        if (reader == null)
+            return;
+        final String pattern = "c*";
+        System.out.println("Channels matching a pattern: " + pattern);
+        final String[] names = reader.getNamesByPattern(1, pattern);
+        for (String name : names)
+            System.out.println(name);
+        assertTrue(names.length > 0);
+    }
     //
     // /** Locate channels by pattern */
     // @Test

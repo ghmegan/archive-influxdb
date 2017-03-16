@@ -54,7 +54,7 @@ public class InfluxDBDataSource {
 
         if (strv.length > 1) {
             strv = strv[1].split(Pattern.quote("&"));
-            for (int idx = 1; idx < strv.length; idx++) {
+            for (int idx = 0; idx < strv.length; idx++) {
                 String argv[] = strv[idx].split("=");
                 if (argv.length < 2)
                     throw new Exception("Error parsing InfluxDB raw arg: " + strv[idx]);
