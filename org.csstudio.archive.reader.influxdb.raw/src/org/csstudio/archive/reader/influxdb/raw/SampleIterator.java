@@ -81,7 +81,7 @@ public class SampleIterator extends AbstractInfluxDBValueIterator
             }});
 
         samples = new ChunkReader(sample_queue, sample_endtime, reader.getTimeout(),
-                new InfluxDBRawDecoder.Factory(sample_series.getMeasurement()));
+                new InfluxDBRawDecoder.Factory(sample_series.getField()));
 
         if (samples.step())
             next_value = samples.decodeSampleValue();
