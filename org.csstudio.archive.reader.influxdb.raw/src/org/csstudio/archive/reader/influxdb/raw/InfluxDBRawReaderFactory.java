@@ -37,8 +37,9 @@ public class InfluxDBRawReaderFactory implements ArchiveReaderFactory
 
         synchronized (instance)
         {
-            return new InfluxDBRawReader(ds.getURL(), ds.getArgRequired(InfluxDBDataSource.DB_KEY),
-                    ds.getArg(InfluxDBDataSource.USER_KEY), ds.getArg(InfluxDBDataSource.PASSW_KEY));
+            return new InfluxDBRawReader(ds.getURL(),
+                    ds.getArg(InfluxDBDataSource.USER_KEY),
+                    ds.getArg(InfluxDBDataSource.PASSW_KEY), ds.getArgRequired(InfluxDBDataSource.DB_KEY));
         }
     }
 }
