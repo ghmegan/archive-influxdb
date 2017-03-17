@@ -7,6 +7,8 @@
  ******************************************************************************/
 package org.csstudio.archive.reader.influxdb.raw;
 
+import org.csstudio.archive.influxdb.MetaTypes.MetaObject;
+
 /**
  * Base for Value Tables that read from the InfluxDB
  *
@@ -18,4 +20,6 @@ abstract public class AbstractInfluxDBValueLookup
     public abstract Object getValue(String colname) throws Exception;
 
     public abstract boolean hasValue(String colname);
+
+    public abstract MetaObject getMeta();
 }

@@ -199,8 +199,6 @@ public class InfluxDBArchiveReaderTest
     final private static boolean dump = false;
     final private static int max_samples = 1000000;
 
-
-
     /** Get raw data for scalar
      *
      * Results from testing:

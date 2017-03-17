@@ -143,7 +143,7 @@ public class InfluxDBRawReaderTest
         }
 
         for (int idx = 0; idx < 250; idx++) {
-            Thread.sleep(10);
+            Thread.sleep(100);
 
             for (int hdx = 0; hdx < num_hosts; hdx++) {
                 Instant stamp = Instant.now().plusNanos(1);
@@ -211,7 +211,7 @@ public class InfluxDBRawReaderTest
 
     @Test
     public void testRead() throws Exception {
-        // makeData();
+        makeData();
 
         final Instant end = Instant.now();
         final Instant start = Instant.EPOCH;

@@ -206,8 +206,9 @@ public class InfluxDBArchiveWriterTest
         printSomePoints(channel.getName());
     }
 
-    final private static int TEST_DURATION_SECS = 60;
+    final private static int TEST_DURATION_SECS = 10;
     final private static long FLUSH_COUNT = 10000;
+    final private static long MAX_SAMPLES = 100000;
 
     /**
      *
@@ -261,19 +262,19 @@ public class InfluxDBArchiveWriterTest
         final long start = System.currentTimeMillis();
         long end = start;
         final long to_end = start + TEST_DURATION_SECS*1000L;
-        Instant stamp = Instant.now().minusMillis(100000000).plusNanos(100);
+        Instant stamp = Instant.now().minusMillis(MAX_SAMPLES * 100).plusNanos(100);
         do
         {
             for (int f = 0; f < FLUSH_COUNT; f++)
             {
-                stamp = stamp.plusMillis(1);
+                stamp = stamp.plusMillis(100);
                 writer.addSample(channel, new ArchiveVNumber(stamp, AlarmSeverity.NONE, "OK", display, vals[f]));
             }
             count += FLUSH_COUNT;
             writer.flush();
             end = System.currentTimeMillis();
         }
-        while (end < to_end);
+        while ((end < to_end) && (count < MAX_SAMPLES));
         writer.flush();
 
         final double duration_secs = (end-start) / 1000.0;

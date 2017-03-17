@@ -98,7 +98,8 @@ public class SampleIterator extends AbstractInfluxDBValueIterator
                 metadata_queue.add(result);
             }});
 
-        samples = new ChunkReader(sample_queue, sample_endtime, metadata_queue, metadata_endtime, reader.getTimeout());
+        samples = new ChunkReader(sample_queue, sample_endtime, metadata_queue, metadata_endtime, reader.getTimeout(),
+                new ArchiveDecoder.Factory());
 
         if (samples.step())
             next_value = samples.decodeSampleValue();

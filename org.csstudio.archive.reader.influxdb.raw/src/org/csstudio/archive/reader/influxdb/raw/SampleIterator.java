@@ -31,7 +31,7 @@ public class SampleIterator extends AbstractInfluxDBValueIterator
      */
     private VType next_value = null;
 
-    private final ChunkReader samples;
+    private final RawChunkReader samples;
 
     final private int sample_chunk_size;
 
@@ -92,8 +92,8 @@ public class SampleIterator extends AbstractInfluxDBValueIterator
 
         // Make a chunk reader to consume and decode the sample data coming from
         // the DB
-        samples = new ChunkReader(sample_queue, sample_endtime, reader.getTimeout(),
-                new InfluxDBRawDecoder.Factory(sample_series.getField()));
+        samples = new RawChunkReader(sample_queue, sample_endtime, reader.getTimeout(),
+                new RawDecoder.Factory(sample_series.getField()));
 
         if (samples.step())
             next_value = samples.decodeSampleValue();

@@ -22,12 +22,12 @@ import org.diirt.vtype.ValueFactory;
 /** Decode values into VType
  *  @author Megan Grodowitz
  */
-public class InfluxDBRawDecoder extends AbstractInfluxDBValueDecoder
+public class RawDecoder extends AbstractInfluxDBValueDecoder
 {
     private final AbstractInfluxDBValueLookup vals;
     private final String fieldname;
 
-    public InfluxDBRawDecoder(final AbstractInfluxDBValueLookup vals, final String fieldname) {
+    public RawDecoder(final AbstractInfluxDBValueLookup vals, final String fieldname) {
         this.vals = vals;
         this.fieldname = fieldname;
     }
@@ -42,7 +42,7 @@ public class InfluxDBRawDecoder extends AbstractInfluxDBValueDecoder
 
         @Override
         public AbstractInfluxDBValueDecoder create(AbstractInfluxDBValueLookup vals) {
-            return new InfluxDBRawDecoder(vals, fieldname);
+            return new RawDecoder(vals, fieldname);
         }
     }
 

@@ -15,6 +15,8 @@ import java.util.logging.Level;
 
 import org.csstudio.archive.influxdb.InfluxDBUtil;
 import org.csstudio.archive.influxdb.MetaTypes.MetaObject;
+import org.csstudio.archive.reader.influxdb.raw.AbstractInfluxDBValueDecoder;
+import org.csstudio.archive.reader.influxdb.raw.AbstractInfluxDBValueLookup;
 import org.csstudio.archive.vtype.ArchiveVEnum;
 import org.csstudio.archive.vtype.ArchiveVNumber;
 import org.csstudio.archive.vtype.ArchiveVNumberArray;
@@ -26,16 +28,23 @@ import org.diirt.vtype.VType;
 /** Decode values into VType
  *  @author Megan Grodowitz
  */
-public abstract class InfluxDBSampleDecoder
+public class ArchiveDecoder extends AbstractInfluxDBValueDecoder
 {
     /** Status string for <code>Double.NaN</code> samples */
     final private static String NOT_A_NUMBER_STATUS = "NaN";
 
-    public abstract Object getValue(String colname) throws Exception;
+    private final AbstractInfluxDBValueLookup vals;
 
-    public abstract boolean hasValue(String colname);
+    public ArchiveDecoder(final AbstractInfluxDBValueLookup vals) {
+        this.vals = vals;
+    }
 
-    public abstract MetaObject getMeta();
+    public static class Factory extends AbstractInfluxDBValueDecoder.Factory {
+        @Override
+        public AbstractInfluxDBValueDecoder create(AbstractInfluxDBValueLookup vals) {
+            return new ArchiveDecoder(vals);
+        }
+    }
 
     /** @param severity Original severity
      *  @param status Status text
@@ -71,17 +80,18 @@ public abstract class InfluxDBSampleDecoder
         }
     }
 
-    protected VType decodeSampleValue() throws Exception
+    @Override
+    public VType decodeSampleValue() throws Exception
     {
-        final MetaObject meta = getMeta();
+        final MetaObject meta = vals.getMeta();
 
-        final Instant time = InfluxDBUtil.fromInfluxDBTimeFormat(getValue("time"));
-        final String status = (String) getValue("status");
+        final Instant time = InfluxDBUtil.fromInfluxDBTimeFormat(vals.getValue("time"));
+        final String status = (String) vals.getValue("status");
         if (status == null)
         {
             throw new Exception ("No status field found when decoding sample");
         }
-        final AlarmSeverity severity = filterSeverity((String) getValue("severity"), status);
+        final AlarmSeverity severity = filterSeverity((String) vals.getValue("severity"), status);
 
         switch (meta.storeas)
         {
@@ -101,7 +111,7 @@ public abstract class InfluxDBSampleDecoder
         case ARCHIVE_STRING:
         case ARCHIVE_UNKNOWN:
         {
-            Object val = getValue("string.0");
+            Object val = vals.getValue("string.0");
             if (val == null)
             {
                 throw new Exception ("Did not find string.0 field where expected");
@@ -159,7 +169,7 @@ public abstract class InfluxDBSampleDecoder
 
     protected VType decodeEnumSample(final Instant time, final AlarmSeverity severity, final String status, List<String> labels) throws Exception
     {
-        Object val = getValue("long.0");
+        Object val = vals.getValue("long.0");
         if (val == null)
         {
             throw new Exception ("Did not find long.0 field where expected");
@@ -169,7 +179,7 @@ public abstract class InfluxDBSampleDecoder
 
     protected VType decodeLongSample(final Instant time, final AlarmSeverity severity, final String status, Display display) throws Exception
     {
-        Object val = getValue("long.0");
+        Object val = vals.getValue("long.0");
         if (val == null)
         {
             Activator.getLogger().log(Level.SEVERE, this.toString());
@@ -180,7 +190,7 @@ public abstract class InfluxDBSampleDecoder
 
     protected VType decodeDoubleSamples(final Instant time, final AlarmSeverity severity, final String status, Display display) throws Exception
     {
-        Object val = getValue("double.0");
+        Object val = vals.getValue("double.0");
         if (val == null)
         {
             throw new Exception ("Did not find double.0 field where expected");
@@ -196,8 +206,8 @@ public abstract class InfluxDBSampleDecoder
         while (val != null)
         {
             String fname = "double." + Integer.toString(len);
-            if (hasValue(fname))
-                val = getValue(fname);
+            if (vals.hasValue(fname))
+                val = vals.getValue(fname);
             else
                 val = null;
             if (val != null) {
