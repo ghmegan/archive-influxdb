@@ -25,15 +25,21 @@
   </repositories>
   
   <modules>
+    <!-- Plugins -->
     <module>org.csstudio.archive.influxdb</module>
     <module>org.csstudio.archive.config.influxdb</module>
     <module>org.csstudio.archive.config.influxdb.test</module>
     <module>org.csstudio.archive.reader.influxdb</module>
     <module>org.csstudio.archive.reader.influxdb.raw</module>
-    <module>org.csstudio.archive.reader.influxdb.feature</module>
     <module>org.csstudio.archive.reader.influxdb.test</module>
     <module>org.csstudio.archive.writer.influxdb</module>
     <module>org.csstudio.archive.writer.influxdb.test</module>
+
+    <!-- Features -->
+    <module>org.csstudio.archive.reader.influxdb.feature</module>
+
+    <!-- Repository -->
+    <module>repository</module>
   </modules>
   <build>
     <!-- PLUGIN MANAGEMENT -->
