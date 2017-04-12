@@ -27,8 +27,9 @@
   <modules>
     <!-- Plugins -->
     <module>org.csstudio.archive.influxdb</module>
+    <module>org.csstudio.archive.config.xml</module>
+    <module>org.csstudio.archive.config.xml.test</module>
     <module>org.csstudio.archive.config.influxdb</module>
-    <module>org.csstudio.archive.config.influxdb.test</module>
     <module>org.csstudio.archive.reader.influxdb</module>
     <module>org.csstudio.archive.reader.influxdb.raw</module>
     <module>org.csstudio.archive.reader.influxdb.test</module>
