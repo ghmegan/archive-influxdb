@@ -13,6 +13,8 @@ import java.util.logging.Level;
 import org.csstudio.archive.config.ArchiveConfig;
 import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.GroupConfig;
+import org.csstudio.archive.config.xml.XMLArchiveConfig;
+import org.csstudio.archive.config.xml.XMLGroupConfig;
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
 import org.csstudio.archive.influxdb.InfluxDBQueries;
 import org.csstudio.archive.influxdb.InfluxDBQueries.DBNameMap;
@@ -68,16 +70,16 @@ public class InfluxDBArchiveConfig extends XMLArchiveConfig
 
     /** {@inheritDoc} */
     @Override
-    public ChannelConfig[] getChannels(final GroupConfig group, final boolean skip_last) throws Exception
+    public ChannelConfig[] getChannels(final GroupConfig the_group, final boolean skip_last) throws Exception
     {
-        final InfluxDBGroupConfig influxdb_group = (InfluxDBGroupConfig) group;
+        final XMLGroupConfig group = (XMLGroupConfig) the_group;
 
         if (skip_last)
         {
-            return influxdb_group.getChannelArray();
+            return group.getChannelArray();
         }
 
-        final ChannelConfig[] old_channels = influxdb_group.getChannelArray();
+        final ChannelConfig[] old_channels = group.getChannelArray();
 
         for (ChannelConfig channel : old_channels)
         {
@@ -88,10 +90,10 @@ public class InfluxDBArchiveConfig extends XMLArchiveConfig
             }
             else if (!last_sample_time.equals(channel.getLastSampleTime()))
             {
-                influxdb_group.updateChannelLastTime(channel.getName(), last_sample_time);
+                group.updateChannelLastTime(channel.getName(), last_sample_time);
             }
         }
-        return influxdb_group.getChannelArray();
+        return group.getChannelArray();
     }
 
     /** {@inheritDoc} */

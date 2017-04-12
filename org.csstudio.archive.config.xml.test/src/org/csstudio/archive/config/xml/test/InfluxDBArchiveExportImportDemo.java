@@ -22,7 +22,7 @@ import org.csstudio.archive.config.EngineConfig;
 import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.XMLExport;
 import org.csstudio.archive.config.XMLImport;
-import org.csstudio.archive.config.xml.InfluxDBArchiveConfig;
+import org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
