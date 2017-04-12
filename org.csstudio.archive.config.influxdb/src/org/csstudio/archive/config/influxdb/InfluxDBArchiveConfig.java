@@ -100,10 +100,12 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @return {@link SampleMode}
      *  @throws Exception
      */
-    public InfluxDBSampleMode getSampleMode(final boolean monitor, final double sample_value, final double period) throws Exception
+    @Override
+    public SampleMode getSampleMode(final boolean monitor, final double sample_value, final double period)
+            throws Exception
     {
         //return new InfluxDBSampleMode(monitor ? monitor_mode_id : scan_mode_id, monitor, sample_value, period);
-        return new InfluxDBSampleMode(monitor, sample_value, period);
+        return new SampleMode(monitor, sample_value, period);
     }
 
     /** Create new engine config in InfluxDB
@@ -113,6 +115,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @return
      *  @throws Exception
      */
+    @Override
     public EngineConfig createEngine(final String engine_name, final String description,
             final String engine_url) throws Exception
     {
@@ -146,8 +149,11 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @return {@link EngineConfig} for that group or <code>null</code>
      *  @throws Exception on error
      */
-    public EngineConfig getEngine(final InfluxDBGroupConfig group) throws Exception
+    @Override
+    public EngineConfig getEngine(final GroupConfig the_group) throws Exception
     {
+        // TODO: Antipattern
+        InfluxDBGroupConfig group = (InfluxDBGroupConfig) the_group;
         final EngineConfig engine = engines_id2obj.get(group.getEngineId());
         if (engine == null)
         {
@@ -162,6 +168,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @param engine Engine info to remove
      *  @throws Exception on error
      */
+    @Override
     public void deleteEngine(final EngineConfig engine) throws Exception
     {
         InfluxDBEngineConfig influxdb_engine = ((InfluxDBEngineConfig)engine);
@@ -180,6 +187,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @return {@link InfluxDBGroupConfig}
      *  @throws Exception on error
      */
+    @Override
     public InfluxDBGroupConfig addGroup(final EngineConfig engine, final String name) throws Exception
     {
         final int group_id = next_group_id;
@@ -201,7 +209,8 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @return {@link GroupConfig} for that channel or <code>null</code>
      *  @throws Exception on error
      */
-    public InfluxDBGroupConfig searchChannelGroup(final String channel_name) throws Exception
+    @Override
+    public InfluxDBGroupConfig getChannelGroup(final String channel_name) throws Exception
     {
         for (EngineConfig engine : engines_id2obj.values())
         {
@@ -219,7 +228,8 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @param channel Channel or <code>null</code> to 'always' activate the group
      *  @throws Exception on error
      */
-    public void setEnablingChannel(final InfluxDBGroupConfig group, final InfluxDBChannelConfig channel) throws Exception
+    @Override
+    public void setEnablingChannel(final GroupConfig group, final ChannelConfig channel) throws Exception
     {
         group.setEnablingChannel(channel);
     }
@@ -235,8 +245,12 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @return {@link InfluxDBChannelConfig}
      *  @throws Exception on error
      */
-    public InfluxDBChannelConfig addChannel(final InfluxDBGroupConfig group, final String channel_name, final InfluxDBSampleMode mode) throws Exception
+    @Override
+    public InfluxDBChannelConfig addChannel(final GroupConfig the_group, final String channel_name,
+            final SampleMode mode) throws Exception
     {
+        // TODO: Antipattern
+        InfluxDBGroupConfig group = (InfluxDBGroupConfig) the_group;
         final int channel_id = next_channel_id;
         InfluxDBChannelConfig channel = group.addChannel(channel_id, channel_name, mode, null);
         if (channel != null)

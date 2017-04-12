@@ -10,8 +10,10 @@ package org.csstudio.archive.config.influxdb;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.GroupConfig;
+import org.csstudio.archive.config.SampleMode;
 
 /** InfluxDB implementation of {@link GroupConfig}
  *  @author Kay Kasemir
@@ -103,7 +105,8 @@ public class InfluxDBGroupConfig extends GroupConfig
         channel_id2obj.put(channel_id, old_config.cloneReplaceSampleTime(new_last_sample_time));
     }
 
-    public InfluxDBChannelConfig addChannel(final int channel_id, final String channel_name, final InfluxDBSampleMode mode, Instant last_sample_time) throws Exception
+    public InfluxDBChannelConfig addChannel(final int channel_id, final String channel_name, final SampleMode mode,
+            Instant last_sample_time) throws Exception
     {
         if (channel_name2id.containsKey(channel_name))
             throw new Exception("Cannot re-add extant channel " + channel_name + " to engine " + getName());

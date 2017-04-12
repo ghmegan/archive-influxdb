@@ -7,7 +7,10 @@
  ******************************************************************************/
 package org.csstudio.archive.config.influxdb.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -17,9 +20,9 @@ import java.io.PrintStream;
 import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.EngineConfig;
 import org.csstudio.archive.config.GroupConfig;
+import org.csstudio.archive.config.XMLExport;
+import org.csstudio.archive.config.XMLImport;
 import org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig;
-import org.csstudio.archive.config.influxdb.XMLExport;
-import org.csstudio.archive.config.influxdb.XMLImport;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
