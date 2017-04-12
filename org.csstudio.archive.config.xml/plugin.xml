@@ -4,7 +4,7 @@
    <extension
          point="org.csstudio.archive.config.ArchiveConfig">
       <ArchiveConfig
-            class="org.csstudio.archive.config.xml.InfluxDBArchiveConfig">
+            class="org.csstudio.archive.config.xml.XMLArchiveConfig">
       </ArchiveConfig>
    </extension>
 </plugin>

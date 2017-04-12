@@ -9,17 +9,12 @@ package org.csstudio.archive.config.influxdb;
 
 import java.util.logging.Logger;
 
-import org.eclipse.core.runtime.Platform;
-import org.eclipse.core.runtime.preferences.IPreferencesService;
-
 /** Not really an Activator, just holds related info and could turn into activator
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
 public class Activator
 {
-    public static final String CONFIG_PATH = "config_path";
-
     /** Plugin ID defined in MANIFEST.MF */
     final public static String ID = "org.csstudio.archive.config.influxdb";
 
@@ -27,23 +22,5 @@ public class Activator
     public static Logger getLogger()
     {
         return Logger.getLogger(ID);
-    }
-
-    public static String getConfigPath() {
-        return getString(CONFIG_PATH);
-    }
-
-    /**
-     * Get string preference
-     *
-     * @param key
-     *            Preference key
-     * @return String or <code>null</code>
-     */
-    private static String getString(final String key) {
-        final IPreferencesService prefs = Platform.getPreferencesService();
-        if (prefs == null)
-            return null;
-        return prefs.getString(Activator.ID, key, null, null);
     }
 }

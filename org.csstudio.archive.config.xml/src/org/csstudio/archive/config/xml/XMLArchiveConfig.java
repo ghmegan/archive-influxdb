@@ -7,7 +7,6 @@
  ******************************************************************************/
 package org.csstudio.archive.config.xml;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -17,33 +16,19 @@ import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.EngineConfig;
 import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.SampleMode;
-import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
-import org.csstudio.archive.influxdb.InfluxDBQueries;
-import org.csstudio.archive.influxdb.InfluxDBQueries.DBNameMap;
-import org.csstudio.archive.influxdb.InfluxDBQueries.DefaultDBNameMap;
-import org.csstudio.archive.influxdb.InfluxDBResults;
-import org.csstudio.archive.influxdb.InfluxDBUtil;
-import org.influxdb.InfluxDB;
 
-/** InfluxDB implementation of {@link ArchiveConfig}
+/**
+ * InfluxDB implementation of {@link ArchiveConfig}
  *
- *  <p>Provides read access via {@link ArchiveConfig} API,
- *  may in future allow write access via additional InfluxDB-only methods.
+ * <p>
+ * Provides read access via {@link ArchiveConfig} API, may in future allow write
+ * access via additional InfluxDB-only methods.
  *
- *  @author Kay Kasemir
- *  @author Megan Grodowitz - InfuxDB implementation
+ * @author Megan Grodowitz - XML implementation
  */
 @SuppressWarnings("nls")
-public class InfluxDBArchiveConfig implements ArchiveConfig
+public class XMLArchiveConfig implements ArchiveConfig
 {
-    /** InfluxDB connection */
-    final private InfluxDB influxdb;
-
-    /** InfluxDB statements */
-    final private InfluxDBQueries influxQuery;
-
-    final static private DBNameMap dbnames = new DefaultDBNameMap();
-
     /** Configured engines mapped by unique configuration id */
     final private Map<Integer, EngineConfig> engines_id2obj = new HashMap<Integer, EngineConfig>();
 
@@ -62,28 +47,11 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  is created via the extension point.
      *  @throws Exception on error, for example InfluxDB connection error
      */
-    public InfluxDBArchiveConfig() throws Exception
-    {
-        this(InfluxDBArchivePreferences.getURL(), InfluxDBArchivePreferences.getUser(),
-                InfluxDBArchivePreferences.getPassword());
-    }
-
-    /** Initialize.
-     *  This constructor can be invoked by test code.
-     *  @param url InfluxDB URL
-     *  @param user .. user name
-     *  @param password .. password
-     *  @param schema Schema/table prefix, ending in ".". May be empty
-     *  @throws Exception on error, for example InfluxDB connection error
-     */
-    public InfluxDBArchiveConfig(final String url, final String user, final String password) throws Exception
+    public XMLArchiveConfig() throws Exception
     {
         next_group_id = 100;
         next_engine_id = 100;
         next_channel_id = 100;
-
-        influxdb = InfluxDBUtil.connect(url, user, password);
-        influxQuery = new InfluxDBQueries(influxdb, dbnames);
     }
 
     /** {@inheritDoc} */
@@ -104,7 +72,6 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     public SampleMode getSampleMode(final boolean monitor, final double sample_value, final double period)
             throws Exception
     {
-        //return new InfluxDBSampleMode(monitor ? monitor_mode_id : scan_mode_id, monitor, sample_value, period);
         return new SampleMode(monitor, sample_value, period);
     }
 
@@ -126,7 +93,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
 
         final int engine_id = next_engine_id;
         next_engine_id++;
-        EngineConfig engine = new InfluxDBEngineConfig(engine_id, engine_name, description, engine_url);
+        EngineConfig engine = new XMLEngineConfig(engine_id, engine_name, description, engine_url);
         engines_name2id.put(engine_name, engine_id);
         engines_id2obj.put(engine_id, engine);
         return engine;
@@ -145,7 +112,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     }
 
     /** Get engine for group
-     *  @param group {@link InfluxDBGroupConfig}
+     *  @param group {@link XMLGroupConfig}
      *  @return {@link EngineConfig} for that group or <code>null</code>
      *  @throws Exception on error
      */
@@ -153,7 +120,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     public EngineConfig getEngine(final GroupConfig the_group) throws Exception
     {
         // TODO: Antipattern
-        InfluxDBGroupConfig group = (InfluxDBGroupConfig) the_group;
+        XMLGroupConfig group = (XMLGroupConfig) the_group;
         final EngineConfig engine = engines_id2obj.get(group.getEngineId());
         if (engine == null)
         {
@@ -171,7 +138,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     @Override
     public void deleteEngine(final EngineConfig engine) throws Exception
     {
-        InfluxDBEngineConfig influxdb_engine = ((InfluxDBEngineConfig)engine);
+        XMLEngineConfig influxdb_engine = ((XMLEngineConfig)engine);
         final int engine_id = influxdb_engine.getId();
         final String engine_name = influxdb_engine.getName();
 
@@ -184,14 +151,14 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
 
     /** @param engine Engine to which to add group
      *  @param name Name of new group
-     *  @return {@link InfluxDBGroupConfig}
+     *  @return {@link XMLGroupConfig}
      *  @throws Exception on error
      */
     @Override
-    public InfluxDBGroupConfig addGroup(final EngineConfig engine, final String name) throws Exception
+    public XMLGroupConfig addGroup(final EngineConfig engine, final String name) throws Exception
     {
         final int group_id = next_group_id;
-        InfluxDBGroupConfig group = ((InfluxDBEngineConfig) engine).addGroup(group_id, name, null);
+        XMLGroupConfig group = ((XMLEngineConfig) engine).addGroup(group_id, name, null);
         if (group != null)
             next_group_id++;
         return group;
@@ -201,7 +168,7 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     @Override
     public GroupConfig[] getGroups(final EngineConfig engine) throws Exception
     {
-        final InfluxDBEngineConfig influxdb_engine = (InfluxDBEngineConfig) engine;
+        final XMLEngineConfig influxdb_engine = (XMLEngineConfig) engine;
         return influxdb_engine.getGroupsArray();
     }
 
@@ -210,14 +177,14 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  @throws Exception on error
      */
     @Override
-    public InfluxDBGroupConfig getChannelGroup(final String channel_name) throws Exception
+    public XMLGroupConfig getChannelGroup(final String channel_name) throws Exception
     {
         for (EngineConfig engine : engines_id2obj.values())
         {
-            for (GroupConfig group : ((InfluxDBEngineConfig)engine).getGroupObjs())
+            for (GroupConfig group : ((XMLEngineConfig)engine).getGroupObjs())
             {
-                if (((InfluxDBGroupConfig)group).containsChannel(channel_name))
-                    return ((InfluxDBGroupConfig)group);
+                if (((XMLGroupConfig)group).containsChannel(channel_name))
+                    return ((XMLGroupConfig)group);
             }
         }
         return null;
@@ -239,20 +206,20 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
      *  <p>The channel might already exist in the InfluxDB, but maybe it is not attached
      *  to a sample engine's group, or it's attached to a different group.
      *
-     *  @param group {@link InfluxDBGroupConfig} to which to add the channel
+     *  @param group {@link XMLGroupConfig} to which to add the channel
      *  @param channel_name Name of channel
      *  @param mode Sample mode
-     *  @return {@link InfluxDBChannelConfig}
+     *  @return {@link XMLChannelConfig}
      *  @throws Exception on error
      */
     @Override
-    public InfluxDBChannelConfig addChannel(final GroupConfig the_group, final String channel_name,
+    public XMLChannelConfig addChannel(final GroupConfig the_group, final String channel_name,
             final SampleMode mode) throws Exception
     {
         // TODO: Antipattern
-        InfluxDBGroupConfig group = (InfluxDBGroupConfig) the_group;
+        XMLGroupConfig group = (XMLGroupConfig) the_group;
         final int channel_id = next_channel_id;
-        InfluxDBChannelConfig channel = group.addChannel(channel_id, channel_name, mode, null);
+        XMLChannelConfig channel = group.addChannel(channel_id, channel_name, mode, null);
         if (channel != null)
         {
             next_channel_id++;
@@ -264,56 +231,14 @@ public class InfluxDBArchiveConfig implements ArchiveConfig
     @Override
     public ChannelConfig[] getChannels(final GroupConfig group, final boolean skip_last) throws Exception
     {
-        final InfluxDBGroupConfig influxdb_group = (InfluxDBGroupConfig) group;
-
-        if (skip_last)
-        {
-            return influxdb_group.getChannelArray();
-        }
-
-        final ChannelConfig[] old_channels = influxdb_group.getChannelArray();
-
-        for (ChannelConfig channel : old_channels)
-        {
-            final Instant last_sample_time = InfluxDBResults.getTimestamp(influxQuery.get_newest_channel_samples(channel.getName(), null, null, 1L));
-            if (last_sample_time == null)
-            {
-                Activator.getLogger().log(Level.WARNING, "Failed to get last sample time for channel " + channel.getName());
-            }
-            else if (!last_sample_time.equals(channel.getLastSampleTime()))
-            {
-                influxdb_group.updateChannelLastTime(channel.getName(), last_sample_time);
-            }
-        }
+        final XMLGroupConfig influxdb_group = (XMLGroupConfig) group;
         return influxdb_group.getChannelArray();
     }
-
-    //    /** @param channel_id Channel ID in config
-    //     *  @return Name of channel
-    //     *  @throws Exception on error
-    //     */
-    //    private String getChannelName(final int channel_id) throws Exception
-    //    {
-    //        try
-    //        (
-    //                final PreparedStatement statement =
-    //                influxdb.getConnection().prepareStatement(sql.channel_sel_by_id);
-    //                )
-    //        {
-    //            statement.setInt(1, channel_id);
-    //            final ResultSet result = statement.executeQuery();
-    //            if (! result.next())
-    //                throw new Exception("Invalid channel ID " + channel_id);
-    //            final String name = result.getString(1);
-    //            result.close();
-    //            return name;
-    //        }
-    //    }
 
     /** {@inheritDoc} */
     @Override
     public void close()
     {
-        influxdb.close();
+
     }
 }

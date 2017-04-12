@@ -18,7 +18,7 @@ import org.csstudio.archive.config.GroupConfig;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class InfluxDBEngineConfig extends EngineConfig
+public class XMLEngineConfig extends EngineConfig
 {
     /**
      * Unique global id of this engine
@@ -41,7 +41,7 @@ public class InfluxDBEngineConfig extends EngineConfig
      *  @param url
      *  @throws Exception if url is not a valid URL
      */
-    public InfluxDBEngineConfig(final int engine_id, final String name, final String description, final String url) throws Exception
+    public XMLEngineConfig(final int engine_id, final String name, final String description, final String url) throws Exception
     {
         super(name, description, url);
         this.engine_id = engine_id;
@@ -66,13 +66,13 @@ public class InfluxDBEngineConfig extends EngineConfig
         return group_id2obj.values();
     }
 
-    public InfluxDBGroupConfig addGroup(int group_id, String group_name, String enabling_channel) throws Exception
+    public XMLGroupConfig addGroup(int group_id, String group_name, String enabling_channel) throws Exception
     {
         if (group_name2id.containsKey(group_name))
             throw new Exception("Cannot re-add extant group " + group_name + " to engine " + getName());
 
         group_name2id.put(group_name, group_id);
-        InfluxDBGroupConfig group = new InfluxDBGroupConfig(group_id, group_name, enabling_channel, engine_id);
+        XMLGroupConfig group = new XMLGroupConfig(group_id, group_name, enabling_channel, engine_id);
         group_id2obj.put(group_id, group);
         return group;
     }

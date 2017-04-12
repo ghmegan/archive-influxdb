@@ -10,7 +10,7 @@
    </description>
 
    <copyright>
-       Copyright (c) 2015 Oak Ridge National Laboratory.
+      Copyright (c) 2015 Oak Ridge National Laboratory.
    </copyright>
 
    <license url="http://www.eclipse.org/legal/epl-v10.html">
@@ -31,5 +31,11 @@
          version="0.0.0"
          unpack="false"/>
 
-</feature>
+   <plugin
+         id="org.csstudio.archive.config.xml"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
 
+</feature>

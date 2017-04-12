@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.config.influxdb;
+package org.csstudio.archive.config.xml;
 
 import java.time.Instant;
 
@@ -16,7 +16,7 @@ import org.csstudio.archive.config.SampleMode;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class InfluxDBChannelConfig extends ChannelConfig
+public class XMLChannelConfig extends ChannelConfig
 {
     final private int channel_id;
     final private int group_id;
@@ -27,7 +27,7 @@ public class InfluxDBChannelConfig extends ChannelConfig
      *  @param sample_mode Sample mode
      *  @param last_sample_time Time stamp of last sample in archive or <code>null</code>
      */
-    public InfluxDBChannelConfig(final int channel_id, final String name, final SampleMode sample_mode,
+    public XMLChannelConfig(final int channel_id, final String name, final SampleMode sample_mode,
             final Instant last_sample_time, final int group_id)
     {
         super(name, sample_mode, last_sample_time);
@@ -35,9 +35,9 @@ public class InfluxDBChannelConfig extends ChannelConfig
         this.group_id = group_id;
     }
 
-    public InfluxDBChannelConfig cloneReplaceSampleTime(final Instant new_last_sample_time)
+    public XMLChannelConfig cloneReplaceSampleTime(final Instant new_last_sample_time)
     {
-        return new InfluxDBChannelConfig(this.channel_id, this.getName(), this.getSampleMode(), new_last_sample_time, this.group_id);
+        return new XMLChannelConfig(this.channel_id, this.getName(), this.getSampleMode(), new_last_sample_time, this.group_id);
     }
 
     /** @return InfluxDB id of channel */
