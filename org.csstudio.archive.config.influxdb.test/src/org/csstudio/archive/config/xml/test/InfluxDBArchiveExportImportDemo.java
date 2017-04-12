@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.config.influxdb.test;
+package org.csstudio.archive.config.xml.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -22,7 +22,7 @@ import org.csstudio.archive.config.EngineConfig;
 import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.XMLExport;
 import org.csstudio.archive.config.XMLImport;
-import org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig;
+import org.csstudio.archive.config.xml.InfluxDBArchiveConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

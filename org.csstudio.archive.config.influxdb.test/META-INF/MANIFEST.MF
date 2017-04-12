@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Archive Config JUnit tests
-Bundle-SymbolicName: org.csstudio.archive.config.influxdb.test
+Bundle-SymbolicName: org.csstudio.archive.config.xml.test
 Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: Kay Kasemir <kasemirk@ornl.gov> - SNS
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
@@ -9,4 +9,4 @@ Require-Bundle: org.junit;bundle-version="4.8.2",
  org.csstudio.apputil;bundle-version="3.0.0",
  org.csstudio.archive.config;bundle-version="1.0.0",
  org.diirt.util,
- org.csstudio.archive.config.influxdb;bundle-version="3.2.15"
+ org.csstudio.archive.config.xml;bundle-version="3.2.15"

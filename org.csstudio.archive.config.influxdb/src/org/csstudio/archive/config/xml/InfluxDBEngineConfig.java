@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.config.influxdb;
+package org.csstudio.archive.config.xml;
 
 import java.util.Collection;
 import java.util.HashMap;

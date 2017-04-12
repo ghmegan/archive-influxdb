@@ -4,7 +4,7 @@
    <extension
          point="org.csstudio.archive.config.ArchiveConfig">
       <ArchiveConfig
-            class="org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig">
+            class="org.csstudio.archive.config.xml.InfluxDBArchiveConfig">
       </ArchiveConfig>
    </extension>
    <extension
@@ -15,7 +15,7 @@
             thread="main"
             visible="true">
          <run
-               class="org.csstudio.archive.config.influxdb.ArchiveConfigApplication">
+               class="org.csstudio.archive.config.xml.ArchiveConfigApplication">
          </run>
       </application>
    </extension>
@@ -27,7 +27,7 @@
             thread="main"
             visible="true">
          <run
-               class="org.csstudio.archive.config.influxdb.PopulateDatabaseApplication">
+               class="org.csstudio.archive.config.xml.PopulateDatabaseApplication">
          </run>
       </application>
    </extension>
