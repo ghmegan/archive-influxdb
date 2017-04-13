@@ -19,7 +19,6 @@ import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.XMLExport;
 import org.csstudio.archive.config.XMLImport;
 import org.csstudio.archive.config.xml.XMLArchiveConfig;
-import org.junit.Before;
 import org.junit.Test;
 
 /** JUnit demo of {@link XMLExport} and {@link XMLImport}
@@ -28,7 +27,6 @@ import org.junit.Test;
 @SuppressWarnings("nls")
 public class XMLArchiveExportImportTest
 {
-    private String engine_name, engine_url, engine_path;
     private static String base_config_path = "../org.csstudio.archive.config.xml/xml";
     private static String base_engine_url = "http://localhost.test";
 
@@ -56,18 +54,14 @@ public class XMLArchiveExportImportTest
      *
      * @throws Exception
      */
-    @Before
-    public void setPrefs() throws Exception
-    {
-        engine_name = "demo";
-        engine_url = base_engine_url + ".1";
-        engine_path = base_config_path;
-
-        // setPluginPref("org.csstudio.archive.config.xml", "config_path",
-        // base_config_path);
-        // setPluginPref("org.csstudio.archive.config.xml", "engine_url",
-        // engine_url);
-    }
+    // @Before
+    // public void setPrefs() throws Exception
+    // {
+    // // setPluginPref("org.csstudio.archive.config.xml", "config_path",
+    // // base_config_path);
+    // // setPluginPref("org.csstudio.archive.config.xml", "engine_url",
+    // // engine_url);
+    // }
 
     // @After
     // public void close()
@@ -79,6 +73,10 @@ public class XMLArchiveExportImportTest
     @Test
     public void testImport() throws Exception
     {
+        String engine_name = "demo";
+        String engine_url = base_engine_url + ".1";
+        String engine_path = base_config_path;
+
         final ArchiveConfig config = new XMLArchiveConfig(engine_path, engine_url);
 
         EngineConfig engine = config.findEngine(engine_name);
@@ -113,37 +111,32 @@ public class XMLArchiveExportImportTest
         urls[1] = base_engine_url + ".1";
         urls[2] = base_engine_url + ".2";
 
+        final String[] names = new String[3];
+        names[0] = "demo";
+        names[1] = "demo2";
+        names[2] = "demoS";
+
+        final String[] paths = new String[3];
+        paths[0] = base_config_path;
+        paths[1] = base_config_path;
+        paths[2] = base_config_path + "/subdir";
+
         final XMLArchiveConfig config = new XMLArchiveConfig();
 
-        // Read in demo engine from file
-        engine_name = "demo";
-        config.setParams(engine_path, urls[0]);
+        for (int idx = 0; idx < 3; idx++) {
+            config.setParams(paths[idx], urls[idx]);
+            EngineConfig engine = config.findEngine(names[idx]);
+            assertFalse(engine == null);
+        }
 
-        EngineConfig engine = config.findEngine(engine_name);
-        assertFalse(engine == null);
-        assertTrue(engine.getURL().toString() == urls[0]);
-        assertTrue(engine.getName() == engine_name);
-
-        // Read in demo2 engine from file
-        engine_name = "demo2";
-        config.setParams(engine_path, urls[1]);
-
-        engine = config.findEngine(engine_name);
-        assertFalse(engine == null);
-        assertTrue(engine.getURL().toString() == urls[1]);
-        assertTrue(engine.getName() == engine_name);
-
-        // Read in demoS engine from file
-        engine_name = "demoS";
-        config.setParams(engine_path + "/subdir", urls[2]);
-
-        engine = config.findEngine(engine_name);
-        assertFalse(engine == null);
-        assertTrue(engine.getURL().toString() == urls[2]);
-        assertTrue(engine.getName() == engine_name);
+        for (int idx = 0; idx < 3; idx++) {
+            EngineConfig engine = config.findEngine(names[idx]);
+            assertFalse(engine == null);
+            assertTrue(engine.getURL().toString() == urls[idx]);
+            assertTrue(engine.getName() == names[idx]);
+        }
 
         EngineConfig[] engines = config.getEngines();
-
         assertTrue(engines.length == 3);
 
         int total_groups = 0;
@@ -168,7 +161,6 @@ public class XMLArchiveExportImportTest
 
         assertTrue(total_groups == 6);
         assertTrue(total_chans == 12);
-
     }
 
     /** Export the config to temporary xml
@@ -177,6 +169,10 @@ public class XMLArchiveExportImportTest
     @Test
     public void testExport() throws Exception
     {
+        String engine_name = "demo";
+        String engine_url = base_engine_url + ".1";
+        String engine_path = base_config_path;
+
         final XMLArchiveConfig config = new XMLArchiveConfig(engine_path, engine_url);
         EngineConfig engine = config.findEngine(engine_name);
 
