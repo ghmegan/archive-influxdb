@@ -7,6 +7,10 @@
  ******************************************************************************/
 package org.csstudio.archive.config.xml;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -15,7 +19,10 @@ import org.csstudio.archive.config.ArchiveConfig;
 import org.csstudio.archive.config.ChannelConfig;
 import org.csstudio.archive.config.EngineConfig;
 import org.csstudio.archive.config.GroupConfig;
+import org.csstudio.archive.config.ImportableArchiveConfig;
 import org.csstudio.archive.config.SampleMode;
+import org.csstudio.archive.config.XMLExport;
+import org.csstudio.archive.config.XMLImport;
 
 /**
  * InfluxDB implementation of {@link ArchiveConfig}
@@ -27,7 +34,7 @@ import org.csstudio.archive.config.SampleMode;
  * @author Megan Grodowitz - XML implementation
  */
 @SuppressWarnings("nls")
-public class XMLArchiveConfig implements ArchiveConfig
+public class XMLArchiveConfig implements ImportableArchiveConfig
 {
     /** Configured engines mapped by unique configuration id */
     final private Map<Integer, EngineConfig> engines_id2obj = new HashMap<Integer, EngineConfig>();
@@ -42,23 +49,51 @@ public class XMLArchiveConfig implements ArchiveConfig
     /** Next unique channel id to assign */
     private int next_channel_id;
 
+    /**
+     * Set this filepath to something non-null to override plugin preferences
+     */
+    private String filepath;
+
+    private String config_url;
+
     /** Initialize.
      *  This constructor will be invoked when an {@link ArchiveConfig}
      *  is created via the extension point.
      *  @throws Exception on error, for example InfluxDB connection error
      */
-    public XMLArchiveConfig() throws Exception
+    public XMLArchiveConfig(final String filepath, final String config_url)
     {
         next_group_id = 100;
         next_engine_id = 100;
         next_channel_id = 100;
+
+        this.filepath = filepath;
+        this.config_url = config_url;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public EngineConfig[] getEngines() throws Exception
-    {
-        return engines_id2obj.values().toArray(new EngineConfig[engines_id2obj.size()]);
+    public XMLArchiveConfig() throws Exception {
+        this(null, null);
+    }
+
+    public void setFilePath(final String filepath) {
+        this.filepath = filepath;
+    }
+
+    public void unsetFilePath() {
+        this.filepath = null;
+    }
+
+    public void setConfigURL(final String url) {
+        this.config_url = url;
+    }
+
+    public void unsetConfigURL() {
+        this.config_url = null;
+    }
+
+    public void setParams(final String filepath, final String url) {
+        this.setFilePath(filepath);
+        this.setConfigURL(url);
     }
 
     /** Determine sample mode
@@ -99,6 +134,38 @@ public class XMLArchiveConfig implements ArchiveConfig
         return engine;
     }
 
+
+    private File getFileFromPath(final String engine_name) {
+        if (filepath != null) {
+            File f0 = new File(filepath);
+            if ((engine_name != null) && (f0.isDirectory()))
+                return new File(f0, engine_name + ".xml");
+            return f0;
+        }
+
+        File dir = new File(Activator.getConfigPath());
+        if (engine_name == null)
+            return dir;
+
+        return new File(dir, engine_name + ".xml");
+    }
+
+    private String getURL() {
+        if (config_url == null)
+            return Activator.getEngineURL();
+
+        return config_url;
+    }
+
+    public void exportEngine(final String filename, final String name) throws Exception {
+        final PrintStream out = new PrintStream(filename);
+        try {
+            new XMLExport().export(out, this, name);
+        } finally {
+            out.close();
+        }
+    }
+
     /** {@inheritDoc} */
     @Override
     public EngineConfig findEngine(final String name) throws Exception
@@ -106,9 +173,34 @@ public class XMLArchiveConfig implements ArchiveConfig
         Integer id = engines_name2id.get(name);
         if (engines_name2id.get(name) == null)
         {
-            return null;
+            File input_file = getFileFromPath(name);
+            if (!input_file.exists()) {
+                Activator.getLogger().log(Level.SEVERE,
+                        () -> "Cannot open engine file: " + input_file.getAbsolutePath());
+                return null;
+            }
+
+            final XMLImport importer = new XMLImport(this, true, false);
+            final InputStream stream = new FileInputStream(input_file);
+            importer.import_engine(stream, name, name, this.getURL());
+
+            if (engines_name2id.get(name) == null) {
+                Activator.getLogger().log(Level.SEVERE,
+                        () -> "Problem importing engine :" + name + " from file: " + input_file.getAbsolutePath());
+                return null;
+            }
         }
+
+        id = engines_name2id.get(name);
         return engines_id2obj.get(id);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public EngineConfig[] getEngines() throws Exception {
+        // TODO: get directory listing for current config dir and extract engine
+        // names
+        return engines_id2obj.values().toArray(new EngineConfig[engines_id2obj.size()]);
     }
 
     /** Get engine for group
@@ -119,7 +211,6 @@ public class XMLArchiveConfig implements ArchiveConfig
     @Override
     public EngineConfig getEngine(final GroupConfig the_group) throws Exception
     {
-        // TODO: Antipattern
         XMLGroupConfig group = (XMLGroupConfig) the_group;
         final EngineConfig engine = engines_id2obj.get(group.getEngineId());
         if (engine == null)
@@ -216,7 +307,6 @@ public class XMLArchiveConfig implements ArchiveConfig
     public XMLChannelConfig addChannel(final GroupConfig the_group, final String channel_name,
             final SampleMode mode) throws Exception
     {
-        // TODO: Antipattern
         XMLGroupConfig group = (XMLGroupConfig) the_group;
         final int channel_id = next_channel_id;
         XMLChannelConfig channel = group.addChannel(channel_id, channel_name, mode, null);

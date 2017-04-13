@@ -102,4 +102,46 @@ public class InfluxDBArchiveConfig extends XMLArchiveConfig
     {
         influxdb.close();
     }
+
+    // public static void Test()
+    // {
+    // String archive_url = "http://diane.ornl.gov:8086";
+    // String user = null;
+    // String password = null;
+    // String tmp_file = File.createTempFile("InfluxDBConfigTest-out", ".xml");
+    // String input_file = new
+    // File("../org.csstudio.archive.config.influxdb/xml/demo.xml");
+    // String engine_name = "demo";
+    // ArchiveConfig config;
+    //
+    // if (archive_url == null || tmp_file == null || input_file == null ||
+    // engine_name == null)
+    // {
+    // System.out.println("Skipping test, missing one of: archive_url, tmp_file,
+    // input_file, engine_name");
+    // config = null;
+    // return;
+    // }
+    //
+    // System.out.println("Using temporary file: " + tmp_file.getName());
+    //
+    // if (user == null || password == null)
+    // {
+    // System.out.println("Trying connections with no username or
+    // password....");
+    // user = null;
+    // password = null;
+    // }
+    //
+    // config = new InfluxDBArchiveConfig(archive_url, user, password);
+    //
+    // assertTrue(input_file.exists());
+    // final XMLImport importer = new XMLImport(config, true, false);
+    // final InputStream stream = new FileInputStream(input_file);
+    // System.out.println("Reading file " + input_file + ", " +
+    // input_file.length() + " bytes");
+    //
+    // importer.parse(stream, engine_name, "Demo", "http://localhost:4813");
+    // }
+
 }

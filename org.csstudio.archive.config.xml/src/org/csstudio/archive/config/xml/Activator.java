@@ -19,9 +19,10 @@ import org.eclipse.core.runtime.preferences.IPreferencesService;
 public class Activator
 {
     public static final String CONFIG_PATH = "config_path";
+    public static final String ENGINE_URL = "engine_url";
 
     /** Plugin ID defined in MANIFEST.MF */
-    final public static String ID = "org.csstudio.archive.config.influxdb";
+    final public static String ID = "org.csstudio.archive.config.xml";
 
     /** @return Logger for plugin ID */
     public static Logger getLogger()
@@ -31,6 +32,10 @@ public class Activator
 
     public static String getConfigPath() {
         return getString(CONFIG_PATH);
+    }
+
+    public static String getEngineURL() {
+        return getString(ENGINE_URL);
     }
 
     /**

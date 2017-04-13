@@ -9,5 +9,5 @@ Require-Bundle: org.junit;bundle-version="4.8.2",
  org.csstudio.apputil;bundle-version="3.0.0",
  org.csstudio.archive.config;bundle-version="1.0.0",
  org.diirt.util,
- org.csstudio.archive.config.xml;bundle-version="3.2.15",
- org.csstudio.archive.config.influxdb
+ org.eclipse.core.runtime,
+ org.csstudio.archive.config.xml;bundle-version="3.2.15"
