@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.csstudio.archive.config.influxdb;
+package org.csstudio.archive.config.influxdb.generate;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,6 +16,7 @@ import org.csstudio.apputil.args.StringOption;
 import org.csstudio.apputil.time.BenchmarkTimer;
 import org.csstudio.archive.config.ArchiveConfig;
 import org.csstudio.archive.config.ArchiveConfigFactory;
+import org.csstudio.archive.config.influxdb.Activator;
 import org.csstudio.security.PasswordInput;
 import org.csstudio.security.preferences.SecurePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;

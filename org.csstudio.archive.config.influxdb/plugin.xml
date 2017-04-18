@@ -15,7 +15,7 @@
             thread="main"
             visible="true">
          <run
-               class="org.csstudio.archive.config.influxdb.GenApp">
+               class="org.csstudio.archive.config.influxdb.generate.GenApp">
          </run>
       </application>
    </extension>
