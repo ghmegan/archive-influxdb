@@ -7,4 +7,28 @@
             class="org.csstudio.archive.config.influxdb.InfluxDBArchiveConfig">
       </ArchiveConfig>
    </extension>
+   <extension
+         id="genapp"
+         point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="singleton-global"
+            thread="main"
+            visible="true">
+         <run
+               class="org.csstudio.archive.config.influxdb.GenApp">
+         </run>
+      </application>
+   </extension>
+   <extension
+         id="product"
+         point="org.eclipse.core.runtime.products">
+      <product
+            application="org.csstudio.archive.config.influxdb.genapp"
+            name="InfluxDBGenerate">
+         <property
+               name="appName"
+               value="InfluxDBGenerate">
+         </property>
+      </product>
+   </extension>
 </plugin>

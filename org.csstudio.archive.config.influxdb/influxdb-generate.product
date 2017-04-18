@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?pde version="3.5"?>
+
+<product name="InfluxDBGenerate" uid="influxdb-generate" id="org.csstudio.archive.config.influxdb.product" application="org.csstudio.archive.config.influxdb.genapp" version="1.0.0" useFeatures="false" includeLaunchers="true">
+
+   <configIni use="default">
+   </configIni>
+
+   <launcherArgs>
+      <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts
+      </vmArgsMac>
+   </launcherArgs>
+
+   <plugins>
+      <plugin id="com.diffplug.osgi.extension.sun.misc" fragment="true"/>
+      <plugin id="com.google.guava"/>
+      <plugin id="com.ibm.icu.base"/>
+      <plugin id="com.squareup.moshi"/>
+      <plugin id="com.squareup.okhttp3.logging-interceptor"/>
+      <plugin id="com.squareup.okhttp3.okhttp"/>
+      <plugin id="com.squareup.okio"/>
+      <plugin id="com.squareup.retrofit2.converter-moshi"/>
+      <plugin id="com.squareup.retrofit2.retrofit"/>
+      <plugin id="javax.xml"/>
+      <plugin id="org.apache.commons.lang3"/>
+      <plugin id="org.csstudio.apputil"/>
+      <plugin id="org.csstudio.apputil.test" fragment="true"/>
+      <plugin id="org.csstudio.archive.config"/>
+      <plugin id="org.csstudio.archive.config.influxdb"/>
+      <plugin id="org.csstudio.archive.config.xml"/>
+      <plugin id="org.csstudio.archive.influxdb"/>
+      <plugin id="org.csstudio.archive.vtype"/>
+      <plugin id="org.csstudio.archive.vtype.test" fragment="true"/>
+      <plugin id="org.csstudio.java"/>
+      <plugin id="org.csstudio.java.test" fragment="true"/>
+      <plugin id="org.csstudio.logging"/>
+      <plugin id="org.csstudio.logging.test" fragment="true"/>
+      <plugin id="org.csstudio.platform.libs.jms"/>
+      <plugin id="org.csstudio.security"/>
+      <plugin id="org.csstudio.security.test" fragment="true"/>
+      <plugin id="org.diirt.util"/>
+      <plugin id="org.diirt.vtype"/>
+      <plugin id="org.eclipse.core.contenttype"/>
+      <plugin id="org.eclipse.core.expressions"/>
+      <plugin id="org.eclipse.core.jobs"/>
+      <plugin id="org.eclipse.core.runtime"/>
+      <plugin id="org.eclipse.core.runtime.compatibility.registry" fragment="true"/>
+      <plugin id="org.eclipse.equinox.app"/>
+      <plugin id="org.eclipse.equinox.common"/>
+      <plugin id="org.eclipse.equinox.ds"/>
+      <plugin id="org.eclipse.equinox.preferences"/>
+      <plugin id="org.eclipse.equinox.registry"/>
+      <plugin id="org.eclipse.equinox.security"/>
+      <plugin id="org.eclipse.equinox.security.macosx" fragment="true"/>
+      <plugin id="org.eclipse.equinox.security.win32.x86" fragment="true"/>
+      <plugin id="org.eclipse.equinox.security.win32.x86_64" fragment="true"/>
+      <plugin id="org.eclipse.equinox.util"/>
+      <plugin id="org.eclipse.fx.osgi" fragment="true"/>
+      <plugin id="org.eclipse.help"/>
+      <plugin id="org.eclipse.osgi"/>
+      <plugin id="org.eclipse.osgi.compatibility.state" fragment="true"/>
+      <plugin id="org.eclipse.osgi.services"/>
+      <plugin id="org.hamcrest.core"/>
+      <plugin id="org.influxdb.java"/>
+      <plugin id="org.junit"/>
+   </plugins>
+
+
+</product>
