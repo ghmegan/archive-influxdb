@@ -163,7 +163,8 @@ public class InfluxDBArchiveWriter implements ArchiveWriter
             QueryResult results = influxQuery.get_newest_meta_datum(name);
             if (InfluxDBResults.getValueCount(results) <= 0)
             {
-                throw new Exception("Unknown channel " + name);
+                // throw new Exception("Unknown channel " + name);
+                return makeNewChannel(name);
             }
             List<MetaObject> meta = MetaTypes.toMetaObjects(results);
             if (meta.size() != 1)
