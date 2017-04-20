@@ -19,6 +19,8 @@ import org.csstudio.archive.config.GroupConfig;
 import org.csstudio.archive.config.XMLExport;
 import org.csstudio.archive.config.XMLImport;
 import org.csstudio.archive.config.xml.XMLArchiveConfig;
+import org.csstudio.archive.config.xml.XMLFileUtil;
+import org.csstudio.archive.config.xml.XMLFileUtil.SingleURLMap;
 import org.junit.Test;
 
 /** JUnit demo of {@link XMLExport} and {@link XMLImport}
@@ -70,20 +72,11 @@ public class XMLArchiveExportImportTest
     // config.close();
     // }
 
-    @Test
-    public void testImport() throws Exception
-    {
-        String engine_name = "demo";
-        String engine_url = base_engine_url + ".1";
-        String engine_path = base_config_path;
-
-        final ArchiveConfig config = new XMLArchiveConfig(engine_path, engine_url);
-
+    private void confCheck(String engine_name, String engine_url, final ArchiveConfig config) throws Exception {
         EngineConfig engine = config.findEngine(engine_name);
         assertFalse(engine == null);
-
-        assertTrue(engine.getURL().toString() == engine_url);
-        assertTrue(engine.getName() == engine_name);
+        assertTrue(engine.getURL().toString().equals(engine_url));
+        assertTrue(engine.getName().equals(engine_name));
 
         GroupConfig[] groups = config.getGroups(engine);
         assertTrue(groups.length == 2);
@@ -102,6 +95,79 @@ public class XMLArchiveExportImportTest
 
         System.out.println("Got engine: " + engine.getName() + ", with " + groups.length + " groups, " + total_chan
                 + " channels at url: " + engine.getURL());
+    }
+
+    @Test
+    public void testImport() throws Exception {
+        String engine_name = "demo";
+        String engine_url = base_engine_url + ".1";
+        String engine_path = base_config_path;
+
+        final ArchiveConfig config = new XMLArchiveConfig(engine_path, engine_url);
+
+        confCheck(engine_name, engine_url, config);
+    }
+
+    @Test
+    public void testImportUtil() throws Exception {
+        String engine_name = "demo";
+        String engine_url = base_engine_url + ".1";
+
+        final XMLArchiveConfig config = new XMLArchiveConfig();
+        final XMLFileUtil util = new XMLFileUtil(true);
+        util.importAll(config, base_config_path + "/" + engine_name + ".xml", new SingleURLMap(engine_url));
+
+        confCheck(engine_name, engine_url, config);
+    }
+
+    protected void multiConfCheck(XMLArchiveConfig config) throws Exception {
+        EngineConfig[] engines = config.getEngines();
+        assertTrue(engines.length == 3);
+
+        int total_groups = 0;
+        int total_chans = 0;
+        for (EngineConfig e : engines) {
+            GroupConfig[] groups = config.getGroups(e);
+            total_groups += groups.length;
+
+            System.out.println("Getting channels for engine: " + e.getName());
+
+            for (GroupConfig g : groups) {
+                System.out.println("Getting channels for group: " + g.getName());
+
+                ChannelConfig[] chans = config.getChannels(g, true);
+                total_chans += chans.length;
+
+                for (ChannelConfig chan : chans) {
+                    System.out.println("Channel: " + chan.toString());
+                }
+            }
+        }
+
+        assertTrue(total_groups == 6);
+        assertTrue(total_chans == 12);
+    }
+
+    @Test
+    public void testImportRecursive() throws Exception {
+        final String[] names = new String[3];
+        names[0] = "demo";
+        names[1] = "demo2";
+        names[2] = "demoS";
+
+        final XMLArchiveConfig config = new XMLArchiveConfig();
+        final XMLFileUtil util = new XMLFileUtil(true);
+        util.importAll(config, base_config_path, new SingleURLMap(base_engine_url));
+        assert (util.getImportedFiles().size() == 3);
+
+        for (int idx = 0; idx < 3; idx++) {
+            EngineConfig engine = config.findEngine(names[idx]);
+            assertFalse(engine == null);
+            assertTrue(engine.getURL().toString().equals(base_engine_url));
+            assertTrue(engine.getName().equals(names[idx]));
+        }
+
+        multiConfCheck(config);
     }
 
     @Test
@@ -132,35 +198,11 @@ public class XMLArchiveExportImportTest
         for (int idx = 0; idx < 3; idx++) {
             EngineConfig engine = config.findEngine(names[idx]);
             assertFalse(engine == null);
-            assertTrue(engine.getURL().toString() == urls[idx]);
-            assertTrue(engine.getName() == names[idx]);
+            assertTrue(engine.getURL().toString().equals(urls[idx]));
+            assertTrue(engine.getName().equals(names[idx]));
         }
 
-        EngineConfig[] engines = config.getEngines();
-        assertTrue(engines.length == 3);
-
-        int total_groups = 0;
-        int total_chans = 0;
-        for (EngineConfig e : engines) {
-            GroupConfig[] groups = config.getGroups(e);
-            total_groups += groups.length;
-
-            System.out.println("Getting channels for engine: " + e.getName());
-
-            for (GroupConfig g : groups) {
-                System.out.println("Getting channels for group: " + g.getName());
-
-                ChannelConfig[] chans = config.getChannels(g, true);
-                total_chans += chans.length;
-
-                for (ChannelConfig chan : chans) {
-                    System.out.println("Channel: " + chan.toString());
-                }
-            }
-        }
-
-        assertTrue(total_groups == 6);
-        assertTrue(total_chans == 12);
+        multiConfCheck(config);
     }
 
     /** Export the config to temporary xml

@@ -22,6 +22,7 @@
       <plugin id="com.squareup.retrofit2.converter-moshi"/>
       <plugin id="com.squareup.retrofit2.retrofit"/>
       <plugin id="javax.xml"/>
+      <plugin id="org.apache.commons.io"/>
       <plugin id="org.apache.commons.lang3"/>
       <plugin id="org.csstudio.apputil"/>
       <plugin id="org.csstudio.apputil.test" fragment="true"/>
@@ -31,13 +32,14 @@
       <plugin id="org.csstudio.archive.influxdb"/>
       <plugin id="org.csstudio.archive.vtype"/>
       <plugin id="org.csstudio.archive.vtype.test" fragment="true"/>
+      <plugin id="org.csstudio.diirt.util.core.preferences"/>
       <plugin id="org.csstudio.java"/>
       <plugin id="org.csstudio.java.test" fragment="true"/>
       <plugin id="org.csstudio.logging"/>
       <plugin id="org.csstudio.logging.test" fragment="true"/>
       <plugin id="org.csstudio.platform.libs.jms"/>
       <plugin id="org.csstudio.security"/>
-      <plugin id="org.csstudio.security.test" fragment="true"/>
+      <plugin id="org.csstudio.vtype.pv"/>
       <plugin id="org.diirt.util"/>
       <plugin id="org.diirt.vtype"/>
       <plugin id="org.eclipse.core.contenttype"/>
@@ -60,6 +62,11 @@
       <plugin id="org.eclipse.osgi"/>
       <plugin id="org.eclipse.osgi.compatibility.state" fragment="true"/>
       <plugin id="org.eclipse.osgi.services"/>
+      <plugin id="org.eclipse.paho.client.mqttv3"/>
+      <plugin id="org.epics.caj"/>
+      <plugin id="org.epics.jca"/>
+      <plugin id="org.epics.pvAccessJava"/>
+      <plugin id="org.epics.pvDataJava"/>
       <plugin id="org.hamcrest.core"/>
       <plugin id="org.influxdb.java"/>
       <plugin id="org.junit"/>

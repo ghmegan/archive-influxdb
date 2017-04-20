@@ -7,16 +7,17 @@
  ******************************************************************************/
 package org.csstudio.archive.config.influxdb.generate;
 
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.csstudio.apputil.args.ArgParser;
 import org.csstudio.apputil.args.BooleanOption;
 import org.csstudio.apputil.args.StringOption;
-import org.csstudio.apputil.time.BenchmarkTimer;
-import org.csstudio.archive.config.ArchiveConfig;
-import org.csstudio.archive.config.ArchiveConfigFactory;
 import org.csstudio.archive.config.influxdb.Activator;
+import org.csstudio.archive.config.xml.XMLArchiveConfig;
+import org.csstudio.archive.config.xml.XMLFileUtil;
+import org.csstudio.archive.config.xml.XMLFileUtil.SingleURLMap;
 import org.csstudio.security.PasswordInput;
 import org.csstudio.security.preferences.SecurePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -25,14 +26,18 @@ import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.osgi.service.prefs.BackingStoreException;
 
-/** Eclipse Application for CSS archive engine
- *  @author Kay Kasemir
- *  @author Takashi Nakamoto - added "-skip_last" option.
+/**
+ * Eclipse Application for CSS archive engine
+ *
+ * @author Megan Grodowitz
  */
 public class GenApp implements IApplication
 {
     /** Request file */
-    private String engine_name;
+    private String root_file;
+
+    private boolean verbose;
+    private boolean skip_pv_sample;
 
     String[] getPrefValue(final String option) {
         if (option != null) { // Split "plugin/key=value"
@@ -50,6 +55,22 @@ public class GenApp implements IApplication
         return null;
     }
 
+    void printVersion(final IApplicationContext context) {
+        final String version = context.getBrandingBundle().getHeaders().get("Bundle-Version");
+        final String app_info = context.getBrandingName() + " " + version;
+        System.out.println(app_info);
+    }
+
+    void printHelp(final IApplicationContext context, final ArgParser parser) {
+        printVersion(context);
+        System.out.println("\n\n" + parser.getHelp());
+    }
+
+    void printUsageError(final IApplicationContext context, final ArgParser parser, final String msg) {
+        printHelp(context, parser);
+        System.err.println(msg);
+    }
+
     /** Obtain settings from preferences and command-line arguments
      *  @param args Command-line arguments
      *  @return <code>true</code> if continue, <code>false</code> to end application
@@ -57,16 +78,17 @@ public class GenApp implements IApplication
     @SuppressWarnings("nls")
     private boolean getSettings(final String args[], final IApplicationContext context)
     {
-        // Display configuration info
-        final String version = context.getBrandingBundle().getHeaders().get("Bundle-Version");
-        final String app_info = context.getBrandingName() + " " + version;
-
         // Create the parser and run it.
         final ArgParser parser = new ArgParser();
-        final BooleanOption help_opt = new BooleanOption(parser, "-help", "Display help");
-        final BooleanOption version_opt = new BooleanOption(parser, "-version", "Display version info");
-        final StringOption engine_name_opt = new StringOption(parser,
-                    "-engine", "demo_engine", "Engine config name", null);
+        final BooleanOption help_opt = new BooleanOption(parser, "-help", "Display help", false);
+        final BooleanOption version_opt = new BooleanOption(parser, "-version", "Display version info", false);
+        final BooleanOption verbose_opt = new BooleanOption(parser, "-verbose", "Verbose status output", false);
+        final BooleanOption skip_pv_sample_opt = new BooleanOption(parser, "-skip_pv_sample",
+                "Skip sampling of PVs for real values, all PVs will default to double types", false);
+        // final StringOption engine_name_opt = new StringOption(parser,
+        // "-engine", "demo_engine", "Engine config name", null);
+        final StringOption root_file_opt = new StringOption(parser, "-root_file", "path/to/fileordir",
+                "Engine file to import or directory tree root with engine files to import", null);
         final StringOption preference_opt = new StringOption(parser, "-set_pref", "plugin.name/preference=value",
                 "Set a preference for a specific plugin", null);
         final StringOption set_password_opt = new StringOption(parser,
@@ -78,24 +100,25 @@ public class GenApp implements IApplication
         }
         catch (final Exception ex)
         {   // Bad options
-            System.out.println(ex.getMessage());
-            System.out.println(parser.getHelp());
+            printUsageError(context, parser, ex.getMessage());
             return false;
         }
+
+        verbose = verbose_opt.get();
+        skip_pv_sample = skip_pv_sample_opt.get();
+
         if (help_opt.get())
         {   // Help requested
-            System.out.println(app_info + "\n\n" + parser.getHelp());
+            printHelp(context, parser);
             return false;
         }
         if (version_opt.get())
         {   // Version requested
-            System.out.println(app_info);
+            printVersion(context);
             return false;
         }
 
-        // Check arguments
         String[] pref_val = getPrefValue(set_password_opt.get());
-
         if (pref_val != null)
         {
             if (pref_val[1] == null)
@@ -122,12 +145,12 @@ public class GenApp implements IApplication
                 final String value = pref_val[1];
 
                 if (value == null) {
-                    System.out.println("Malformed option " + preference_opt.getOption() + " " + pref_opt);
+                    printUsageError(context, parser, "Malformed option " + preference_opt.getOption() + " " + pref_opt);
                     return false;
                 }
                 final int sep = pref.indexOf('/');
                 if (sep < 0) {
-                    System.out.println(
+                    printUsageError(context, parser,
                             "Malformed plugin/preference for option " + preference_opt.getOption() + " " + pref_opt);
                     return false;
                 }
@@ -145,12 +168,11 @@ public class GenApp implements IApplication
             }
         }
 
-        engine_name = engine_name_opt.get();
+        root_file = root_file_opt.get();
 
-        if (engine_name == null)
+        if (root_file == null)
         {
-            System.out.println("Must specificy engine option: " + engine_name_opt.getOption());
-            System.out.println(parser.getHelp());
+            printUsageError(context, parser, "Must specificy root file option: " + root_file_opt.getOption());
             return false;
         }
 
@@ -171,31 +193,35 @@ public class GenApp implements IApplication
         // LogConfigurator.configureFromPreferences();
 
         final Logger logger = Activator.getLogger();
+        final XMLFileUtil util = new XMLFileUtil();
+
+        final String dummy_url = "foo://foo.bar";
+        final XMLArchiveConfig config = new XMLArchiveConfig();
+
+        util.importAll(config, root_file, new SingleURLMap(dummy_url));
+
+        if (verbose) {
+            final List<String> files = util.getImportedFiles();
+            System.out.println("Files Imported: ");
+            for (String file : files) {
+                System.out.println("\t" + file);
+            }
+        }
+
+
+
+        if (skip_pv_sample) {
+            // set all PVs to type double
+        } else {
+            // individually query all PVs to determine a type
+        }
+
         try
         {
             boolean run = true;
             while (run)
             {
-                logger.info("Reading configuration '" + engine_name + "'");
-                BenchmarkTimer timer = new BenchmarkTimer();
-                ArchiveConfig config = null;
-                try
-                {
-                    config = ArchiveConfigFactory.getArchiveConfig();
-                }
-                catch (final Exception ex)
-                {
-                    logger.log(Level.SEVERE, "Cannot read configuration", ex);
-                    return EXIT_OK;
-                }
-                finally
-                {
-                    if (config != null)
-                        config.close();
-                }
-                timer.stop();
-                logger.info("Read configuration: " + config.toString() +
-                            " channels in " + timer.toString());
+                run = false;
             }
 
             logger.info("ArchiveEngine stopped");

@@ -136,18 +136,29 @@ public class XMLArchiveConfig implements ImportableArchiveConfig
 
 
     private File getFileFromPath(final String engine_name) {
-        if (filepath != null) {
-            File f0 = new File(filepath);
-            if ((engine_name != null) && (f0.isDirectory()))
-                return new File(f0, engine_name + ".xml");
-            return f0;
+        final File f_ret;
+
+        final String fpath;
+
+        if (this.filepath != null) {
+            fpath = this.filepath;
+        } else {
+            fpath = Activator.getConfigPath();
         }
 
-        File dir = new File(Activator.getConfigPath());
-        if (engine_name == null)
-            return dir;
+        File f0 = new File(fpath);
+        if ((engine_name != null) && (f0.isDirectory()))
+            f_ret = new File(f0, engine_name + ".xml");
+        else
+            f_ret = f0;
 
-        return new File(dir, engine_name + ".xml");
+        if (!f_ret.exists()) {
+            Activator.getLogger().log(Level.SEVERE,
+                    () -> "Could not find expected engine file: " + f_ret.getAbsolutePath());
+            return null;
+        }
+
+        return f_ret;
     }
 
     private String getURL() {
@@ -168,16 +179,38 @@ public class XMLArchiveConfig implements ImportableArchiveConfig
 
     /** {@inheritDoc} */
     @Override
-    public EngineConfig findEngine(final String name) throws Exception
+    public EngineConfig findEngine(final String in_name) throws Exception
     {
+        final String name;
+        File input_file = null;
+
+        if (in_name != null) {
+            name = in_name;
+        } else {
+            input_file = getFileFromPath(null);
+            if (input_file == null)
+                return null;
+            if (input_file.isDirectory()) {
+                Activator.getLogger().log(Level.SEVERE,
+                        "Could not infer engine name due to null string for name and no known engine filepath");
+                return null;
+            }
+            final String fname = input_file.getName();
+            name = XMLFileUtil.getEngineName(fname);
+            if (name == null) {
+                Activator.getLogger().log(Level.SEVERE,
+                        () -> "Could not extract engine name from engine filepath: " + fname);
+                return null;
+            }
+        }
+
         Integer id = engines_name2id.get(name);
         if (engines_name2id.get(name) == null)
         {
-            File input_file = getFileFromPath(name);
-            if (!input_file.exists()) {
-                Activator.getLogger().log(Level.SEVERE,
-                        () -> "Cannot open engine file: " + input_file.getAbsolutePath());
-                return null;
+            if (input_file == null) {
+                input_file = getFileFromPath(name);
+                if (input_file == null)
+                    return null;
             }
 
             final XMLImport importer = new XMLImport(this, true, false);
@@ -186,7 +219,7 @@ public class XMLArchiveConfig implements ImportableArchiveConfig
 
             if (engines_name2id.get(name) == null) {
                 Activator.getLogger().log(Level.SEVERE,
-                        () -> "Problem importing engine :" + name + " from file: " + input_file.getAbsolutePath());
+                        "Problem importing engine :" + name + " from file: " + input_file.getAbsolutePath());
                 return null;
             }
         }
