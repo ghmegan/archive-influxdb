@@ -25,22 +25,33 @@ public class InfluxDBQueries
     private final DBNameMap dbnames;
 
     public static class DefaultDBNameMap extends DBNameMap {
+
+        protected final String db_name;
+        protected final String meta_db_name;
+        protected final List<String> all_names;
+
+        public DefaultDBNameMap() {
+            db_name = InfluxDBArchivePreferences.getDBPrefix() + InfluxDBArchivePreferences.getDBName();
+            meta_db_name = InfluxDBArchivePreferences.getDBPrefix() + InfluxDBArchivePreferences.getMetaDBName();
+
+            all_names = new ArrayList<String>();
+            all_names.add(db_name);
+            all_names.add(meta_db_name);
+        }
+
         @Override
         public String getDataDBName(String channel_name) {
-            return InfluxDBArchivePreferences.DFLT_DBNAME;
+            return db_name;
         }
 
         @Override
         public String getMetaDBName(String channel_name) {
-            return InfluxDBArchivePreferences.DFLT_METADBNAME;
+            return meta_db_name;
         }
 
         @Override
         public List<String> getAllDBNames() {
-            List<String> ret = new ArrayList<String>();
-            ret.add(InfluxDBArchivePreferences.DFLT_DBNAME);
-            ret.add(InfluxDBArchivePreferences.DFLT_METADBNAME);
-            return ret;
+            return all_names;
         }
     };
 

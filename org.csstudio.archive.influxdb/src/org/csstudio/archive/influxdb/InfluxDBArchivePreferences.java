@@ -23,8 +23,33 @@ public class InfluxDBArchivePreferences
     public static final String TIMEOUT = "timeout_secs";
 
     //TODO: Multiple databases?
-    public static final String DFLT_DBNAME = "channel_data";
-    public static final String DFLT_METADBNAME = "channel_meta";
+    // public static final String DFLT_DBNAME = "channel_data";
+    // public static final String DFLT_METADBNAME = "channel_meta";
+
+    public static final String DFLT_DB = "default_db";
+    public static final String DFLT_META_DB = "default_meta_db";
+    public static final String DB_PREFIX = "db_prefix";
+
+    public static String getDBName() {
+        final String ret = getString(DFLT_DB);
+        if (ret == null)
+            return "channel_data";
+        return ret;
+    }
+
+    public static String getMetaDBName() {
+        final String ret = getString(DFLT_META_DB);
+        if (ret == null)
+            return "channel_meta";
+        return ret;
+    }
+
+    public static String getDBPrefix() {
+        final String ret = getString(DB_PREFIX);
+        if (ret == null)
+            return "";
+        return ret;
+    }
 
     /** @return URL of InfluxDB archive server */
     public static String getURL()
