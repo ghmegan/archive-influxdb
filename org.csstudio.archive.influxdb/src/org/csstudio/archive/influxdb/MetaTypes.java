@@ -142,31 +142,51 @@ public class MetaTypes
         }
     }
 
-    public static Point toDisplayMetaPoint(final Display meta, final String channel_name,
+    public static class cleanDisplayMeta {
+        public final double low_disp_rng, high_disp_rng, low_warn_lmt, high_warn_lmt;
+        public final double low_alarm_lmt, high_alarm_lmt, low_ctrl_lmt, high_ctrl_lmt;
+        public final int precision;
+        public final String units;
+
+        public cleanDisplayMeta(Display meta) {
+            low_disp_rng = meta.getLowerDisplayLimit().doubleValue();
+            high_disp_rng = meta.getUpperDisplayLimit().doubleValue();
+            low_warn_lmt = meta.getLowerWarningLimit().doubleValue();
+            high_warn_lmt = meta.getUpperWarningLimit().doubleValue();
+            low_alarm_lmt = meta.getLowerAlarmLimit().doubleValue();
+            high_alarm_lmt = meta.getUpperAlarmLimit().doubleValue();
+            low_ctrl_lmt = meta.getLowerCtrlLimit().doubleValue();
+            high_ctrl_lmt = meta.getUpperCtrlLimit().doubleValue();
+
+            String munits = meta.getUnits();
+            if (munits == null || munits.length() < 1)
+                units = " "; //$NON-NLS-1$
+            else
+                units = munits.replaceAll("^\"+|\"+$", "");
+
+            final NumberFormat format = meta.getFormat();
+            if (format != null)
+                precision = format.getMinimumFractionDigits();
+            else
+                precision = 0;
+        }
+
+    }
+
+    public static Point toDisplayMetaPoint(final Display disp, final String channel_name,
             final Instant stamp, final StoreAs storeas)
     {
-        final NumberFormat format = meta.getFormat();
-        int precision = 0;
-        if (format != null)
-            precision = format.getMinimumFractionDigits();
 
-        String units = meta.getUnits();
-        if (units == null  ||  units.length() < 1)
-            units = " "; //$NON-NLS-1$
+        final cleanDisplayMeta meta = new cleanDisplayMeta(disp);
 
         return Point.measurement(channel_name)
                 .time(InfluxDBUtil.toNanoLong(stamp), TimeUnit.NANOSECONDS)
                 .tag("datatype", storeas.name())
-                .addField("low_disp_rng", meta.getLowerDisplayLimit())
-                .addField("high_disp_rng", meta.getUpperDisplayLimit())
-                .addField("low_warn_lmt", meta.getLowerWarningLimit())
-                .addField("high_warn_lmt", meta.getUpperWarningLimit())
-                .addField("low_alarm_lmt", meta.getLowerAlarmLimit())
-                .addField("high_alarm_lmt", meta.getUpperAlarmLimit())
-                .addField("low_ctrl_lmt", meta.getLowerCtrlLimit())
-                .addField("high_ctrl_lmt", meta.getUpperCtrlLimit())
-                .addField("precision", precision)
-                .addField("units", units)
+                .addField("low_disp_rng", meta.low_disp_rng).addField("high_disp_rng", meta.high_disp_rng)
+                .addField("low_warn_lmt", meta.low_warn_lmt).addField("high_warn_lmt", meta.high_warn_lmt)
+                .addField("low_alarm_lmt", meta.low_alarm_lmt).addField("high_alarm_lmt", meta.high_alarm_lmt)
+                .addField("low_ctrl_lmt", meta.low_ctrl_lmt).addField("high_ctrl_lmt", meta.high_ctrl_lmt)
+                .addField("precision", meta.precision).addField("units", meta.units)
                 .build();
     }
 
