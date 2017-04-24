@@ -148,15 +148,21 @@ public class MetaTypes
         public final int precision;
         public final String units;
 
+        private double numericDouble(Double val) {
+            if (Double.isFinite(val))
+                return val.doubleValue();
+            return 0;
+        }
+
         public cleanDisplayMeta(Display meta) {
-            low_disp_rng = meta.getLowerDisplayLimit().doubleValue();
-            high_disp_rng = meta.getUpperDisplayLimit().doubleValue();
-            low_warn_lmt = meta.getLowerWarningLimit().doubleValue();
-            high_warn_lmt = meta.getUpperWarningLimit().doubleValue();
-            low_alarm_lmt = meta.getLowerAlarmLimit().doubleValue();
-            high_alarm_lmt = meta.getUpperAlarmLimit().doubleValue();
-            low_ctrl_lmt = meta.getLowerCtrlLimit().doubleValue();
-            high_ctrl_lmt = meta.getUpperCtrlLimit().doubleValue();
+            low_disp_rng = numericDouble(meta.getLowerDisplayLimit());
+            high_disp_rng = numericDouble(meta.getUpperDisplayLimit());
+            low_warn_lmt = numericDouble(meta.getLowerWarningLimit());
+            high_warn_lmt = numericDouble(meta.getUpperWarningLimit());
+            low_alarm_lmt = numericDouble(meta.getLowerAlarmLimit());
+            high_alarm_lmt = numericDouble(meta.getUpperAlarmLimit());
+            low_ctrl_lmt = numericDouble(meta.getLowerCtrlLimit());
+            high_ctrl_lmt = numericDouble(meta.getUpperCtrlLimit());
 
             String munits = meta.getUnits();
             if (munits == null || munits.length() < 1)
