@@ -22,6 +22,9 @@ public class Messages extends NLS
     public static String StoredProcedure;
     public static String User;
     public static String URL;
+    public static String DBData;
+    public static String DBMeta;
+    public static String DBPrefix;
 
     static
     {

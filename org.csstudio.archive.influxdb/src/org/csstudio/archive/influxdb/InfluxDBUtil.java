@@ -81,7 +81,7 @@ public class InfluxDBUtil
     {
         Activator.getLogger().log(Level.FINE, "Connecting to {0}", url);
         InfluxDB influxdb;
-        if (user == null || password == null)
+        if (user == null || user.isEmpty() || password == null || password.isEmpty())
         {
             influxdb = InfluxDBFactory.connect(url);
         }

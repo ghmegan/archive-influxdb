@@ -10,6 +10,7 @@ package org.csstudio.archive.reader.influxdb;
 import java.util.logging.Level;
 
 import org.csstudio.archive.influxdb.InfluxDBArchivePreferences;
+import org.csstudio.archive.influxdb.InfluxDBDataSource;
 import org.csstudio.archive.reader.ArchiveReader;
 import org.csstudio.archive.reader.ArchiveReaderFactory;
 
@@ -22,7 +23,7 @@ public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
 {
     /** {@inheritDoc} */
     @Override
-    public ArchiveReader getArchiveReader(final String url) throws Exception
+    public ArchiveReader getArchiveReader(final String encoded_url) throws Exception
     {
         // There used to be problems with empty user and password preference
         // settings.
@@ -39,19 +40,39 @@ public class InfluxDBArchiveReaderFactory implements ArchiveReaderFactory
         // running in a plug-in environment that supports preferences in the
         // first place.
 
-        // TODO: other parsing?
-        Activator.getLogger().log(Level.INFO,
-                "Input url for influxdb is currently ignored. Set url with preferences. " + url);
-
         final Activator instance = Activator.getInstance();
         if (instance == null)
             throw new Exception("InfluxDBArchiveReaderFactory requires Plugin infrastructure");
+
+        String actual_url = null, user = null, password = null;
+        try {
+            InfluxDBDataSource ds = InfluxDBDataSource.decodeURL(encoded_url);
+            actual_url = ds.getURL();
+            user = ds.getArg(InfluxDBDataSource.USER_KEY);
+            password = ds.getArg(InfluxDBDataSource.PASSW_KEY);
+        } catch (Exception e) {
+            actual_url = null;
+        }
+
         synchronized (instance)
         {
-            final String user = InfluxDBArchivePreferences.getUser();
-            final String password = InfluxDBArchivePreferences.getPassword();
-            //final String stored_proc = Preferences.getStoredProcedure();
-            final String actual_url = InfluxDBArchivePreferences.getURL();
+            if (actual_url == null)
+                actual_url = InfluxDBArchivePreferences.getURL();
+            if (user == null)
+                user = InfluxDBArchivePreferences.getUser();
+            if (password == null)
+                try {
+                    password = InfluxDBArchivePreferences.getPassword();
+                } catch (Exception e) {
+                    Activator.getLogger().log(Level.WARNING, "Could not get InfluxDB pasword from secure store");
+                    // e.printStackTrace();
+                }
+
+            if ((user != null) && (user.isEmpty()))
+                user = null;
+            if ((password != null) && (password.isEmpty()))
+                password = null;
+
             return new InfluxDBArchiveReader(actual_url, user, password);
         }
     }

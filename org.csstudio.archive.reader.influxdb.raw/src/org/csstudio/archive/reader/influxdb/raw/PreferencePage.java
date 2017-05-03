@@ -69,10 +69,14 @@ implements IWorkbenchPreferencePage
         setMessage(Messages.PreferenceTitle);
         final Composite parent = getFieldEditorParent();
 
-        addField(new StringFieldEditor(InfluxDBArchivePreferences.USER, Messages.User, parent));
         addField(new StringFieldEditor(InfluxDBArchivePreferences.URL, Messages.URL, parent));
+        addField(new StringFieldEditor(InfluxDBArchivePreferences.USER, Messages.User, parent));
         addField(new PasswordFieldEditor(org.csstudio.archive.influxdb.Activator.ID,
                 InfluxDBArchivePreferences.PASSWORD, Messages.Password, parent));
+
+        addField(new StringFieldEditor(InfluxDBArchivePreferences.DB_PREFIX, Messages.DBPrefix, parent));
+        addField(new StringFieldEditor(InfluxDBArchivePreferences.DFLT_META_DB, Messages.DBData, parent));
+        addField(new StringFieldEditor(InfluxDBArchivePreferences.DFLT_DB, Messages.DBMeta, parent));
 
         // FieldEditorPreferencePage will set all its
         // editors to the 'main' pref. store.

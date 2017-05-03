@@ -11,6 +11,7 @@ public class InfluxDBDataSource {
     static public String DB_KEY = "db";
     static public String USER_KEY = "user";
     static public String PASSW_KEY = "password";
+    static public String METADB_KEY = "meta_db";
 
     final protected String url;
     final protected Map<String, String> args;
