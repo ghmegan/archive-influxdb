@@ -1,5 +1,6 @@
 package org.csstudio.archive.config.influxdb.generate;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,14 +17,23 @@ import org.csstudio.archive.config.xml.XMLEngineConfig;
 import org.csstudio.archive.config.xml.XMLGroupConfig;
 import org.csstudio.archive.influxdb.Activator;
 import org.csstudio.archive.influxdb.MetaTypes.StoreAs;
+import org.csstudio.archive.vtype.ArchiveVNumber;
+import org.csstudio.archive.writer.WriteChannel;
+import org.csstudio.archive.writer.influxdb.InfluxDBArchiveWriter;
 import org.diirt.util.text.NumberFormats;
+import org.diirt.vtype.AlarmSeverity;
 import org.diirt.vtype.Display;
 import org.diirt.vtype.ValueFactory;
 
 public class ChannelGenerator {
 
+    public static long FLUSH_COUNT = 10000;
+    protected long flush_counter;
+
     final Display display = ValueFactory.newDisplay(0.0, 1.0, 2.0, "a.u.", NumberFormats.format(2), 8.0, 9.0, 10.0, 0.0,
             10.0);
+
+    final InfluxDBArchiveWriter writer;
 
     public static class ChanInfo {
         public final String name;
@@ -42,17 +52,40 @@ public class ChannelGenerator {
 
     public static class TickSet implements Comparable<TickSet> {
         public final double period;
-        public double next_tick;
+        public Instant next_tick;
         public final List<ChanInfo> chans;
 
-        public TickSet(final double period) {
+        private final double[] dvals;
+        private int cur_dval;
+
+        double getDoubleValue() {
+            return dvals[cur_dval];
+        }
+
+        double nextDoubleValue() {
+            cur_dval++;
+            if (cur_dval >= dvals.length)
+                cur_dval = 0;
+
+            return dvals[cur_dval];
+        }
+
+        public TickSet(final double period, final Instant start_ts) {
             this.period = period;
+            next_tick = start_ts;
+
             chans = new ArrayList<ChanInfo>();
+            dvals = new double[360];
+
+            for (int deg = 0; deg < 360; deg++) {
+                dvals[deg] = 100.0 * Math.sin(Math.toRadians(deg));
+                cur_dval = 0;
+            }
         }
 
         @Override
         public int compareTo(TickSet o) {
-            return (next_tick < o.next_tick) ? -1 : ((next_tick == o.next_tick) ? 0 : 1);
+            return (next_tick.isBefore(o.next_tick)) ? -1 : ((next_tick.equals(o.next_tick)) ? 0 : 1);
         }
 
         public void addChanDouble(final String name) {
@@ -67,7 +100,11 @@ public class ChannelGenerator {
 
     protected TickSet[] ticks;
 
-    public ChannelGenerator(XMLArchiveConfig config, boolean skipPVSample) throws Exception {
+    public ChannelGenerator(XMLArchiveConfig config, InfluxDBArchiveWriter writer, Instant start_ts,
+            boolean skipPVSample) throws Exception {
+
+        this.writer = writer;
+        this.flush_counter = 0;
 
         Map<Double, TickSet> ticksets = new HashMap<Double, TickSet>();
 
@@ -86,7 +123,7 @@ public class ChannelGenerator {
                     }
 
                     if (!ticksets.containsKey(period)) {
-                        ticksets.put(period, new TickSet(period));
+                        ticksets.put(period, new TickSet(period, start_ts));
                     }
                     final TickSet tset = ticksets.get(period);
 
@@ -106,6 +143,7 @@ public class ChannelGenerator {
     }
 
     private void printState() {
+        System.out.println("\n*****************************");
         for (TickSet ts : ticks) {
             System.out.println(ts);
             for (ChanInfo ci : ts.chans) {
@@ -114,11 +152,27 @@ public class ChannelGenerator {
         }
     }
 
-    public void step() {
+    public Instant step() throws Exception {
+
         // printState();
 
-        ticks[0].next_tick += ticks[0].period;
+        double val = ticks[0].nextDoubleValue();
+        for (ChanInfo ci : ticks[0].chans) {
+            WriteChannel channel = writer.getChannel(ci.name);
+            writer.addSample(channel, new ArchiveVNumber(ticks[0].next_tick, AlarmSeverity.NONE, "OK", display, val));
+
+            if (++flush_counter >= FLUSH_COUNT) {
+                writer.flush();
+                flush_counter = 0;
+            }
+
+        }
+
+        Double millis = ticks[0].period * 1000;
+        ticks[0].next_tick = ticks[0].next_tick.plusMillis(millis.longValue());
         Arrays.sort(ticks);
+
+        return ticks[0].next_tick;
     }
 
 }

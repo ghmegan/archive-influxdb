@@ -317,21 +317,36 @@ public class GenApp implements IApplication
         // Create the databases
         writer.getQueries().initDatabases(ci.influxdb);
 
-        ChannelGenerator gen = new ChannelGenerator(config, skip_pv_sample);
+        ChannelGenerator gen = new ChannelGenerator(config, writer, start_ts, skip_pv_sample);
         long steps = 0;
-        long max_steps = 20;
+        long max_steps = Long.MAX_VALUE;
+
+        Double total_secs = (double) Duration.between(start_ts, stop_ts).getSeconds();
+        Double perc = 0.0;
 
         try
         {
             boolean run = true;
             while (run)
             {
-                gen.step();
-                steps++;
-                if (steps > max_steps)
-                    run = false;
-            }
+                final Instant current = gen.step();
 
+                if (current.isAfter(stop_ts))
+                    run = false;
+
+                steps++;
+                if (steps >= max_steps)
+                    run = false;
+
+                if (verbose) {
+                    Double current_secs = (double) Duration.between(start_ts, current).getSeconds();
+                    Double new_perc = (current_secs / total_secs) * 100.0;
+                    if ((new_perc - perc) > 5.0) {
+                        perc = new_perc;
+                        System.out.format("%4.1f%%: " + current + "\n", perc);
+                    }
+                }
+            }
             logger.info("ArchiveEngine stopped");
         }
         catch (Exception ex)
