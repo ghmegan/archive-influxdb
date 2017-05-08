@@ -20,7 +20,7 @@
       </application>
    </extension>
    <extension
-         id="product"
+         id="influxdb-generate"
          point="org.eclipse.core.runtime.products">
       <product
             application="org.csstudio.archive.config.influxdb.genapp"

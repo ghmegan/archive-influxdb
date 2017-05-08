@@ -1,15 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?pde version="3.5"?>
 
-<product name="InfluxDBGenerate" uid="influxdb-generate" id="org.csstudio.archive.config.influxdb.product" application="org.csstudio.archive.config.influxdb.genapp" version="1.0.0" useFeatures="false" includeLaunchers="true">
+<product name="InfluxDBGenerate" uid="influxdb-generate" id="org.csstudio.archive.config.influxdb.influxdb-generate" application="org.csstudio.archive.config.influxdb.genapp" version="1.0.0" useFeatures="false" includeLaunchers="true">
 
    <configIni use="default">
    </configIni>
 
    <launcherArgs>
+      <programArgs>-verbose
+-skip_pv_sample
+-duration 1:01:30:10
+-start_date 2016-10-31T06:52:20.020Z
+-root_file /Users/elc/local/src/CSS/csstudio-ci/BUILD/archive-influxdb/org.csstudio.archive.config.xml/xml/
+-set_pref org.csstudio.archive.influxdb/url=http://localhost:8086
+-set_pref org.csstudio.archive.influxdb/default_db=generate_data
+-set_pref org.csstudio.archive.influxdb/default_meta_db=generate_meta
+-set_pref org.csstudio.archive.influxdb/db_prefix=archive_
+      </programArgs>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts
       </vmArgsMac>
    </launcherArgs>
+
+   <launcher>
+      <solaris/>
+      <win useIco="false">
+         <bmp/>
+      </win>
+   </launcher>
+
+   <vm>
+   </vm>
 
    <plugins>
       <plugin id="com.diffplug.osgi.extension.sun.misc" fragment="true"/>
@@ -25,18 +45,19 @@
       <plugin id="org.apache.commons.io"/>
       <plugin id="org.apache.commons.lang3"/>
       <plugin id="org.csstudio.apputil"/>
-      <plugin id="org.csstudio.apputil.test" fragment="true"/>
       <plugin id="org.csstudio.archive.config"/>
       <plugin id="org.csstudio.archive.config.influxdb"/>
       <plugin id="org.csstudio.archive.config.xml"/>
       <plugin id="org.csstudio.archive.influxdb"/>
       <plugin id="org.csstudio.archive.vtype"/>
-      <plugin id="org.csstudio.archive.vtype.test" fragment="true"/>
+      <plugin id="org.csstudio.archive.writer"/>
+      <plugin id="org.csstudio.archive.writer.influxdb"/>
       <plugin id="org.csstudio.diirt.util.core.preferences"/>
       <plugin id="org.csstudio.java"/>
       <plugin id="org.csstudio.java.test" fragment="true"/>
       <plugin id="org.csstudio.logging"/>
       <plugin id="org.csstudio.logging.test" fragment="true"/>
+      <plugin id="org.csstudio.platform.libs.jdbc"/>
       <plugin id="org.csstudio.platform.libs.jms"/>
       <plugin id="org.csstudio.security"/>
       <plugin id="org.csstudio.vtype.pv"/>

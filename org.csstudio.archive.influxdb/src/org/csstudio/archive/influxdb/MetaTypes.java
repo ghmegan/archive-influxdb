@@ -155,6 +155,7 @@ public class MetaTypes
         }
 
         public cleanDisplayMeta(Display meta) {
+            // TODO: do not add fields for non-numeric
             low_disp_rng = numericDouble(meta.getLowerDisplayLimit());
             high_disp_rng = numericDouble(meta.getUpperDisplayLimit());
             low_warn_lmt = numericDouble(meta.getLowerWarningLimit());

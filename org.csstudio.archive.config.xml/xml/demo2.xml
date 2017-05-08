@@ -4,7 +4,7 @@
   <group>
     <name>EastSectorTemp</name>
       <channel><name>EST:T1</name><period>1.0</period><monitor/></channel>
-      <channel><name>EST:T2</name><period>1.0</period><monitor>2.5</monitor></channel>
+      <channel><name>EST:T2</name><period>0.1</period><monitor>2.5</monitor></channel>
   </group>
 
   <group>

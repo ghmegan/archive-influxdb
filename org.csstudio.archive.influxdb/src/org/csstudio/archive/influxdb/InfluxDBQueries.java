@@ -55,6 +55,10 @@ public class InfluxDBQueries
         }
     };
 
+    public List<String> getAllDBNames() {
+        return dbnames.getAllDBNames();
+    }
+
     public void initDatabases(final InfluxDB influxdb) {
         for (String db : dbnames.getAllDBNames()) {
             influxdb.createDatabase(db);

@@ -7,6 +7,9 @@
  ******************************************************************************/
 package org.csstudio.archive.config.influxdb.generate;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,6 +21,8 @@ import org.csstudio.archive.config.influxdb.Activator;
 import org.csstudio.archive.config.xml.XMLArchiveConfig;
 import org.csstudio.archive.config.xml.XMLFileUtil;
 import org.csstudio.archive.config.xml.XMLFileUtil.SingleURLMap;
+import org.csstudio.archive.influxdb.InfluxDBUtil.ConnectionInfo;
+import org.csstudio.archive.writer.influxdb.InfluxDBArchiveWriter;
 import org.csstudio.security.PasswordInput;
 import org.csstudio.security.preferences.SecurePreferences;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
@@ -38,6 +43,9 @@ public class GenApp implements IApplication
 
     private boolean verbose;
     private boolean skip_pv_sample;
+    private boolean skip_db_check;
+
+    private Instant start_ts, stop_ts;
 
     String[] getPrefValue(final String option) {
         if (option != null) { // Split "plugin/key=value"
@@ -71,6 +79,46 @@ public class GenApp implements IApplication
         System.err.println(msg);
     }
 
+    Duration parseDuration(final String durstr) {
+        String[] splitstr = durstr.split(":");
+        if ((splitstr.length < 1) || (splitstr.length > 4))
+            return null;
+
+        Integer[] durarr = new Integer[splitstr.length];
+        for (int idx = 0; idx < splitstr.length; idx++)
+        {
+            try {
+                durarr[splitstr.length - idx - 1] = Integer.valueOf(splitstr[idx]);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+
+        Duration dur = Duration.ofSeconds(durarr[0]);
+        if (durarr.length < 2)
+            return dur;
+
+        dur = dur.plusMinutes(durarr[1]);
+        if (durarr.length < 3)
+            return dur;
+
+        dur = dur.plusHours(durarr[2]);
+        if (durarr.length < 4)
+            return dur;
+
+        dur = dur.plusDays(durarr[3]);
+        return dur;
+    }
+
+    Instant parseStartTime(final String startstr) {
+        try {
+            return Instant.from(DateTimeFormatter.ISO_INSTANT.parse(startstr));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     /** Obtain settings from preferences and command-line arguments
      *  @param args Command-line arguments
      *  @return <code>true</code> if continue, <code>false</code> to end application
@@ -83,16 +131,22 @@ public class GenApp implements IApplication
         final BooleanOption help_opt = new BooleanOption(parser, "-help", "Display help", false);
         final BooleanOption version_opt = new BooleanOption(parser, "-version", "Display version info", false);
         final BooleanOption verbose_opt = new BooleanOption(parser, "-verbose", "Verbose status output", false);
+        final BooleanOption skip_db_check_opt = new BooleanOption(parser, "-skip_db_check",
+                "Do not check if generated databases already exist", false);
         final BooleanOption skip_pv_sample_opt = new BooleanOption(parser, "-skip_pv_sample",
                 "Skip sampling of PVs for real values, all PVs will default to double types", false);
-        // final StringOption engine_name_opt = new StringOption(parser,
-        // "-engine", "demo_engine", "Engine config name", null);
         final StringOption root_file_opt = new StringOption(parser, "-root_file", "path/to/fileordir",
                 "Engine file to import or directory tree root with engine files to import", null);
         final StringOption preference_opt = new StringOption(parser, "-set_pref", "plugin.name/preference=value",
                 "Set a preference for a specific plugin", null);
         final StringOption set_password_opt = new StringOption(parser,
                 "-set_password", "plugin/key=value", "Set secure preferences", null);
+        final StringOption duration_opt = new StringOption(parser, "-duration", "DD:HH:mm:ss",
+                "Duration of data to generate", null);
+        final StringOption start_time_opt = new StringOption(parser, "-start_date", "ISO_INSTANT",
+                "First timestamp of generated data in ISO/UTC, defaults to now - duration. E.g: 2016-10-31T06:52:20.020Z",
+                null);
+
         parser.addEclipseParameters();
         try
         {
@@ -106,6 +160,7 @@ public class GenApp implements IApplication
 
         verbose = verbose_opt.get();
         skip_pv_sample = skip_pv_sample_opt.get();
+        skip_db_check = skip_db_check_opt.get();
 
         if (help_opt.get())
         {   // Help requested
@@ -115,6 +170,41 @@ public class GenApp implements IApplication
         if (version_opt.get())
         {   // Version requested
             printVersion(context);
+            return false;
+        }
+
+        final String durstr = duration_opt.get();
+        if (durstr == null) {
+            printUsageError(context, parser, "Must specificy duration option: " + duration_opt.getOption());
+            return false;
+        }
+        final Duration dur = parseDuration(durstr);
+        if (dur == null) {
+            printUsageError(context, parser, "Format error in duration: " + durstr);
+            return false;
+        }
+        final String startstr = start_time_opt.get();
+        if (startstr == null) {
+            start_ts = Instant.now().minus(dur);
+        }
+        else {
+            start_ts = parseStartTime(startstr);
+            if (start_ts == null) {
+                printUsageError(context, parser, "Format error in start time: " + startstr);
+                return false;
+            }
+        }
+        stop_ts = start_ts.plus(dur);
+
+        if (verbose) {
+            System.out.println("Simulating " + dur + " worth of data");
+            System.out.println("\tStart @: " + start_ts);
+            System.out.println("\tStop  @: " + stop_ts);
+        }
+
+        root_file = root_file_opt.get();
+        if (root_file == null) {
+            printUsageError(context, parser, "Must specificy root file option: " + root_file_opt.getOption());
             return false;
         }
 
@@ -168,14 +258,6 @@ public class GenApp implements IApplication
             }
         }
 
-        root_file = root_file_opt.get();
-
-        if (root_file == null)
-        {
-            printUsageError(context, parser, "Must specificy root file option: " + root_file_opt.getOption());
-            return false;
-        }
-
         return true;
     }
 
@@ -193,7 +275,7 @@ public class GenApp implements IApplication
         // LogConfigurator.configureFromPreferences();
 
         final Logger logger = Activator.getLogger();
-        final XMLFileUtil util = new XMLFileUtil();
+        final XMLFileUtil util = new XMLFileUtil(verbose);
 
         final String dummy_url = "foo://foo.bar";
         final XMLArchiveConfig config = new XMLArchiveConfig();
@@ -208,20 +290,46 @@ public class GenApp implements IApplication
             }
         }
 
+        final InfluxDBArchiveWriter writer;
 
-
-        if (skip_pv_sample) {
-            // set all PVs to type double
-        } else {
-            // individually query all PVs to determine a type
+        try {
+            writer = new InfluxDBArchiveWriter();
+        } catch (Exception e) {
+            throw new Exception("Could not create archive writer", e);
         }
+
+        final ConnectionInfo ci = writer.getConnectionInfo();
+        System.out.println("Generating databases into InfluxDB instance: " + ci);
+
+        if (!skip_db_check) {
+            final List<String> existing_dbs = ci.dbs;
+            final List<String> gen_dbs = writer.getQueries().getAllDBNames();
+
+            for (String db : gen_dbs) {
+                if (existing_dbs.contains(db)) {
+                    System.err.println("InfluxDB instance already contains database: " + db);
+                    System.err.println("See -help for option to skip database checking");
+                    return Integer.valueOf(-2);
+                }
+            }
+        }
+
+        // Create the databases
+        writer.getQueries().initDatabases(ci.influxdb);
+
+        ChannelGenerator gen = new ChannelGenerator(config, skip_pv_sample);
+        long steps = 0;
+        long max_steps = 20;
 
         try
         {
             boolean run = true;
             while (run)
             {
-                run = false;
+                gen.step();
+                steps++;
+                if (steps > max_steps)
+                    run = false;
             }
 
             logger.info("ArchiveEngine stopped");
