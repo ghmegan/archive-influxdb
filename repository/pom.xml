@@ -33,11 +33,11 @@
               <!-- 'uid' in the *.product -->
               <id>influxdb-generate</id>
               <!-- Add version number to product top directory and zipped product -->
-              <rootFolder>influxdb-generate</rootFolder>
+              <rootFolder>influxdb-generate-root</rootFolder>
               <rootFolders>
                 <macosx>InfluxDBGenerate.app</macosx>
               </rootFolders>
-              <archiveFileName>influxdb-generate</archiveFileName>
+              <archiveFileName>influxdb-generate-arc</archiveFileName>
               <!-- When creating ZIP archive for more than one product, need 'attachId'  -->
               <attachId>influxdb-generate</attachId>
             </product>
