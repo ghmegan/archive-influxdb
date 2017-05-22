@@ -10,13 +10,32 @@
     <tycho-extras.version>${tycho.version}</tycho-extras.version>
   </properties>
 
+    <!-- PLUGIN REPOSITORIES -->
+  <pluginRepositories>
+    <pluginRepository>
+      <id>tycho</id>
+      <url>https://oss.sonatype.org/content/groups/public</url>
+      <releases><enabled>false</enabled></releases>
+      <snapshots><enabled>true</enabled></snapshots>
+    </pluginRepository>
+  </pluginRepositories>
+
   <repositories>
     <repository>
       <id>influx-plugin</id>
       <url>http://ctrl-ci.sns.gov/snapshot/influxdb-java-snapshot/repository/</url>
       <layout>p2</layout>
     </repository>
-
+    <repository>
+      <id>eclipse</id>
+      <url>${eclipse-site}</url>
+      <layout>p2</layout>
+    </repository>
+    <repository>
+      <id>efx</id>
+      <url>http://download.eclipse.org/efxclipse/runtime-released/2.1.0/site</url>
+      <layout>p2</layout>
+    </repository>
     <repository>
       <id>csstudio-composite-repo</id>
       <url>file:${csstudio.composite.repo}</url>
@@ -72,7 +91,7 @@
         <version>${tycho.version}</version>
         <extensions>true</extensions>
       </plugin>
-            <plugin>
+      <plugin>
         <groupId>org.eclipse.tycho</groupId>
         <artifactId>target-platform-configuration</artifactId>
         <version>0.23.1</version>
